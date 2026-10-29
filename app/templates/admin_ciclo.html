@@ -28,6 +28,11 @@
 <section class="sec"><div class="t"><h2>Leads recentes</h2><span class="muted small">{% for k, n in resumo.leads.items() %}{{ k }}: {{ n }}{{ ' · ' if not loop.last }}{% endfor %}</span></div>
   <div class="card tw"><table><thead><tr><th>Quando</th><th>Tipo</th><th>Pessoa</th><th>Produto</th><th>Passo</th><th>Situação</th></tr></thead><tbody>
   {% for l in leads %}<tr><td class="muted">{{ fmt_local(l.created_at) }}</td><td>{{ l.kind }}</td><td><b>{{ l.name or '—' }}</b><br><span class="muted small">{{ l.email or l.phone }}</span></td><td class="small">{{ l.plabel or '—' }}</td>
-    <td class="small">{{ l.etapa }} de {{ l.total }}</td><td><span class="pill {{ 'ok' if l.status in ('ganho','concluido') else ('warn' if l.status == 'parado' else 'live') }}">{{ l.status }}{% if l.stop_reason %} · {{ l.stop_reason }}{% endif %}</span></td></tr>
+    <td class="small">{{ l.etapa }} de {{ l.total }}</td><td><span class="pill {{ 'ok' if l.status in ('ganho','concluido') else ('warn' if l.status == 'parado' else 'live') }}">{{ l.status }}{% if l.stop_reason %} · {{ l.stop_reason }}{% endif %}</span>
+      {% if l.status == 'aberto' %}<form method="post" action="/admin/ciclo/lead/{{ l.id }}/parar" style="display:inline;margin-left:8px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm bad" type="submit">Parar</button></form>{% endif %}</td></tr>
   {% else %}<tr><td colspan="6" class="muted">Nenhum lead ainda. Eles aparecem quando a Cakto avisa abandono de carrinho, Pix/boleto gerado ou cartão recusado.</td></tr>{% endfor %}</tbody></table></div></section>
+{% if amostras %}
+<section class="sec"><div class="t"><h2>Último payload de cada evento da Cakto</h2><span class="muted small">dados pessoais mascarados; serve para conferir os campos reais</span></div>
+  <div class="grid">{% for a in amostras %}<details class="card"><summary>{{ a.evento }}</summary><pre style="white-space:pre-wrap;word-break:break-word;font-size:12.5px;color:var(--muted);margin-top:10px">{{ a.value }}</pre></details>{% endfor %}</div></section>
+{% endif %}
 {% endblock %}

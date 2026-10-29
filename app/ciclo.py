@@ -42,13 +42,20 @@ def email_do_token(tok):
 
 
 # ---------------------------------------------------------------- eventos -> leads
+def fone_wa(raw):
+    d = core.only_digits(raw)
+    if len(d) in (10, 11):
+        d = "55" + d
+    return ("+" + d) if len(d) >= 12 else ""
+
+
 def _contato(d):
     cust = d.get("customer") or {}
     email = str(cust.get("email") or d.get("email") or "").strip().lower()
     return {
         "email": email if core.EMAIL_RE.match(email) else "",
         "name": str(cust.get("name") or d.get("name") or "").strip()[:120],
-        "phone": str(cust.get("phone") or cust.get("whatsapp") or d.get("phone") or "").strip()[:30],
+        "phone": fone_wa(cust.get("phone") or cust.get("whatsapp") or d.get("phone") or ""),
         "cpf": (lambda x: x if len(x) in (11, 14) else "")(core.only_digits(cust.get("docNumber") or cust.get("cpf") or d.get("docNumber") or "")),
     }
 
@@ -241,6 +248,9 @@ def setup(app, me, page, form, back, T, extras):
         ult = extras.setting("ciclo_ultima", "")
         return {"leads": cont, "ultima_execucao": json.loads(ult) if ult else None, "optouts": db.one("SELECT COUNT(*) n FROM optouts")["n"]}
 
+    def _amostras():
+        return db.q("SELECT substr(key,9) AS evento, value FROM settings WHERE key LIKE 'amostra:%' ORDER BY key")
+
     @app.get("/admin/ciclo", response_class=HTMLResponse)
     def admin_ciclo(request: Request):
         u = me(request, admin=True)
@@ -248,7 +258,7 @@ def setup(app, me, page, form, back, T, extras):
         r = regras()
         for L in leads:
             L["total"] = len(r["tipos"].get(L["kind"], {}).get("passos", []))
-        return page(request, "admin_ciclo.html", u, leads=leads, resumo=_resumo(), regras=r, simulacao=None, api_ativa=bool(os.environ.get("PRODUCTS_API_TOKEN")))
+        return page(request, "admin_ciclo.html", u, leads=leads, resumo=_resumo(), regras=r, simulacao=None, api_ativa=bool(os.environ.get("PRODUCTS_API_TOKEN")), amostras=_amostras())
 
     @app.post("/admin/ciclo/simular", response_class=HTMLResponse)
     async def admin_ciclo_simular(request: Request):
@@ -258,7 +268,15 @@ def setup(app, me, page, form, back, T, extras):
         r = regras()
         for L in leads:
             L["total"] = len(r["tipos"].get(L["kind"], {}).get("passos", []))
-        return page(request, "admin_ciclo.html", u, leads=leads, resumo=_resumo(), regras=r, simulacao=executar(dry=True), api_ativa=bool(os.environ.get("PRODUCTS_API_TOKEN")))
+        return page(request, "admin_ciclo.html", u, leads=leads, resumo=_resumo(), regras=r, simulacao=executar(dry=True), api_ativa=bool(os.environ.get("PRODUCTS_API_TOKEN")), amostras=_amostras())
+
+    @app.post("/admin/ciclo/lead/{lid}/parar")
+    async def admin_ciclo_parar(request: Request, lid: int):
+        u = me(request, admin=True)
+        await form(request, u)
+        db.x("UPDATE leads SET status='parado', stop_reason='parado pelo painel' WHERE id=? AND status='aberto'", (lid,))
+        core.audit(u["id"], "lead_stop", f"lead:{lid}")
+        return back("/admin/ciclo", ok="Lead encerrado.")
 
     # ---- sair da lista (link no rodape dos e-mails de ciclo)
     @app.get("/sair/{tok}", response_class=HTMLResponse)

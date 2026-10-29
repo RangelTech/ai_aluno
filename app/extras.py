@@ -503,6 +503,18 @@ def setup(app, me, page, form, back, T):
                 core.audit(None, "webhook_sig_mismatch", "cakto")
         event = str(ev.get("event", ""))
         data = ev.get("data")
+        try:
+            def _mask(x, k=""):
+                if isinstance(x, dict):
+                    return {a: _mask(b, a) for a, b in x.items()}
+                if isinstance(x, list):
+                    return [_mask(i, k) for i in x[:2]]
+                if k in ("email", "phone", "docNumber", "name", "holderName", "lastDigits", "birthDate", "qrCode", "barcode", "user", "affiliate", "secret"):
+                    return "***" if x else x
+                return x
+            set_setting("amostra:" + event, json.dumps(_mask(ev), ensure_ascii=False)[:8000])
+        except Exception:  # noqa: BLE001
+            pass
         items = data if isinstance(data, list) else [data]
         results = []
         for d in items:
@@ -920,7 +932,7 @@ def process_cakto(event, d):
                  (oid, str(d.get("refId") or ""), uid, str(prod.get("id") or ""), "cakto", core.iso(core.now())))
             result = "liberado"
             ciclo.fechar_por_compra(email, cpf)
-            ciclo.agendar_onboarding(uid, login_email, nome, str(cust.get("phone") or cust.get("whatsapp") or ""), str(prod.get("id") or ""))
+            ciclo.agendar_onboarding(uid, login_email, nome, ciclo.fone_wa(cust.get("phone") or cust.get("whatsapp") or ""), str(prod.get("id") or ""))
             cpf_user = cpf or (usr["cpf"] if usr else "")
             assunto, html, texto = render_email("acesso", nome=nome.split(" ")[0], produto=limpa_nome(mapa["label"]) or "sua compra", login=login_email,
                                                 cpf_fmt=fmt_cpf(cpf_user) if cpf_user else "", senha_temporaria=senha,
