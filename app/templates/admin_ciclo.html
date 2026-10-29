@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Ciclo de vida{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin/produtos">← Produtos e vendas</a><h1 style="margin-top:6px">Ciclo de vida</h1>
+  <p class="muted">Quem começou a comprar e não pagou (carrinho, Pix, boleto, cartão recusado) e quem comprou e ainda não entrou. Uma rotina diária (DAG no Airflow) chama a API e este motor decide quem recebe o quê. As regras ficam em <code>app/ciclo_regras.json</code>.</p></div></div>
+
+<div class="grid g3">
+  <div class="card"><h3>Janela de envio</h3><p class="muted small" style="margin-top:8px">{{ regras.janela_envio.inicio }}h às {{ regras.janela_envio.fim }}h (Brasília), no máximo 1 mensagem por pessoa por dia, até {{ regras.max_dias }} dias.</p></div>
+  <div class="card"><h3>Última execução</h3><p class="muted small" style="margin-top:8px">{% if resumo.ultima_execucao %}{{ fmt_local(resumo.ultima_execucao.agora) }} · {{ resumo.ultima_execucao.enviados }} enviados, {{ resumo.ultima_execucao.parados }} parados{% else %}Ainda não rodou.{% endif %}</p></div>
+  <div class="card"><h3>API para a rotina</h3><p class="muted small" style="margin-top:8px"><code>POST /api/ciclo/executar</code> (Bearer). <span class="pill {{ 'ok' if api_ativa else 'warn' }}">{{ 'ativa' if api_ativa else 'desativada' }}</span> · {{ resumo.optouts }} pessoa(s) pediram para sair.</p></div>
+</div>
+
+<section class="sec"><div class="t"><h2>Regras por tipo</h2>
+  <form method="post" action="/admin/ciclo/simular"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm pri" type="submit">Simular agora (não envia nada)</button></form></div>
+  <div class="grid g3">
+  {% for k, c in regras.tipos.items() %}
+    <div class="card"><h3>{{ {'carrinho':'Carrinho abandonado','pix':'Pix não pago','boleto':'Boleto não pago','recusado':'Cartão recusado','onboarding':'Ainda não entrou'}[k] }}</h3>
+      <p class="muted small" style="margin:6px 0 10px">{{ c._descricao }}</p>
+      <ol class="small" style="margin:0;padding-left:18px;color:var(--muted)">{% for p in c.passos %}<li>após {{ p.apos_horas }} h: <b style="color:var(--text)">{{ p.variante }}</b>{% if p.usa_downsell %} (oferece o downsell){% endif %} · {{ p.canais|join(' + ') }}</li>{% endfor %}</ol></div>
+  {% endfor %}
+  </div></section>
+
+{% if simulacao %}
+<section class="sec"><div class="t"><h2>Simulação</h2><span class="muted small">{{ simulacao.enviados }} enviaria · {{ simulacao.parados }} pararia · {{ simulacao.aguardando }} aguardando · janela {{ 'aberta' if simulacao.dentro_da_janela else 'fechada agora' }}</span></div>
+  <div class="card tw"><table><tbody>{% for i in simulacao.itens %}<tr><td>#{{ i.lead }}</td><td>{{ i.tipo }}</td><td><b>{{ i.acao }}</b>{% if i.passo %} · {{ i.passo }}{% endif %}{% if i.motivo %} · {{ i.motivo }}{% endif %}</td></tr>{% else %}<tr><td class="muted">Nada a fazer agora.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endif %}
+
+<section class="sec"><div class="t"><h2>Leads recentes</h2><span class="muted small">{% for k, n in resumo.leads.items() %}{{ k }}: {{ n }}{{ ' · ' if not loop.last }}{% endfor %}</span></div>
+  <div class="card tw"><table><thead><tr><th>Quando</th><th>Tipo</th><th>Pessoa</th><th>Produto</th><th>Passo</th><th>Situação</th></tr></thead><tbody>
+  {% for l in leads %}<tr><td class="muted">{{ fmt_local(l.created_at) }}</td><td>{{ l.kind }}</td><td><b>{{ l.name or '—' }}</b><br><span class="muted small">{{ l.email or l.phone }}</span></td><td class="small">{{ l.plabel or '—' }}</td>
+    <td class="small">{{ l.etapa }} de {{ l.total }}</td><td><span class="pill {{ 'ok' if l.status in ('ganho','concluido') else ('warn' if l.status == 'parado' else 'live') }}">{{ l.status }}{% if l.stop_reason %} · {{ l.stop_reason }}{% endif %}</span></td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Nenhum lead ainda. Eles aparecem quando a Cakto avisa abandono de carrinho, Pix/boleto gerado ou cartão recusado.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% if variante == 'pix_pendente' %}Oi, {{ nome }}! Seu Pix está esperando por você.
+
+Você gerou o Pix de {{ produto }} e o pagamento ainda não apareceu. Se já pagou, ignore. Se não, conclua pelo app do seu banco.
+{% elif variante == 'pix_expirou' %}Oi, {{ nome }}! Seu Pix expirou, mas dá para gerar outro.
+
+O Pix de {{ produto }} perdeu a validade. Abra o link e gere um novo em segundos.
+{% elif variante == 'boleto_lembrete' %}Oi, {{ nome }}! Lembrete do seu boleto.
+
+O boleto de {{ produto }} ainda não foi pago. Se já pagou, o banco pode levar até 2 dias úteis para avisar.
+{% elif variante == 'boleto_vencido' %}Oi, {{ nome }}! Seu boleto venceu.
+
+Dá para gerar uma nova forma de pagamento (inclusive Pix, que cai na hora) pelo link abaixo.
+{% elif variante == 'recusado' %}Oi, {{ nome }}! O pagamento não passou.
+
+A compra de {{ produto }} foi recusada pelo cartão. É comum e costuma ser algo simples. Tente de novo, com outro cartão ou por Pix.
+{% else %}Oi, {{ nome }}! Posso ajudar com o pagamento?
+
+A compra de {{ produto }} não chegou a ser concluída. Se algo atrapalhou, me responde que a gente resolve junto.
+{% endif %}
+
+{{ link }}
+
+Qualquer dúvida, é só responder.
+Lucas Rangel · Rangel Tech
+{% if link_sair %}Não quero mais receber: {{ link_sair }}{% endif %}

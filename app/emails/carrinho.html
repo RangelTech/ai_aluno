@@ -1,0 +1,29 @@
+{#
+  Recuperação de carrinho (comprou até o checkout e não finalizou). Uma mensagem por passo; "variante" escolhe o texto.
+  Variáveis: variante (duvida | lembrete | downsell | ultima), nome, produto, oferta_nome (só no downsell), link, link_sair, site.
+  Sem valores em reais e sem urgência inventada: só diga o que é verdade.
+#}
+{% extends "_layout.html" %}
+{% block conteudo %}
+{% if variante == 'duvida' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Oi, {{ nome }}, ficou com alguma dúvida?</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Vi que você começou a compra de <b style="color:#ffffff;">{{ produto }}</b> e não chegou ao fim. Se travou em alguma coisa (forma de pagamento, conteúdo, qualquer detalhe), me responde este e-mail que eu resolvo com você.</p>
+{% elif variante == 'lembrete' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Seu carrinho continua aberto</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">{{ nome }}, a compra de <b style="color:#ffffff;">{{ produto }}</b> ainda está do jeito que você deixou. Se quiser retomar de onde parou, é só usar o botão abaixo.</p>
+{% elif variante == 'downsell' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Que tal começar de um jeito mais leve?</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">{{ nome }}, se <b style="color:#ffffff;">{{ produto }}</b> não era o momento, existe a opção <b style="color:#ffffff;">{{ oferta_nome }}</b>. Dá para começar por ela e evoluir depois, no seu tempo.</p>
+{% else %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Última mensagem sobre isso</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">{{ nome }}, não quero te incomodar, então esta é a última vez que escrevo sobre <b style="color:#ffffff;">{{ produto }}</b>. Se um dia fizer sentido, o link continua valendo.</p>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px 0;"><tr>
+  <td align="center" bgcolor="#5eb0ff" style="border-radius:999px;background:linear-gradient(180deg,#6dbbff,#3d93f2);">
+    <a href="{{ link }}" style="display:inline-block;padding:15px 34px;font-size:16px;font-weight:700;color:#04101f;text-decoration:none;border-radius:999px;">{% if variante == 'downsell' %}Ver essa opção{% else %}Voltar para a compra{% endif %}</a>
+  </td>
+</tr></table>
+
+<p style="margin:0;font-size:14.5px;line-height:1.6;color:#8fa3c2;">Qualquer dúvida, é só responder este e-mail.</p>
+{% endblock %}

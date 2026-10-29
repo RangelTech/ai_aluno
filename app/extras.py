@@ -638,6 +638,9 @@ def setup(app, me, page, form, back, T):
                        link_login=PUBLIC_URL + "/login", link_esqueci=PUBLIC_URL + "/esqueci-senha"),
         "redefinir": dict(nome="Maria", link=PUBLIC_URL + "/redefinir?t=exemplo", validade_horas=1),
         "oferta": dict(nome="Maria", produto="Mentoria individual", oferta_nome="Mentoria com acompanhamento", link="https://pay.cakto.com.br/exemplo"),
+        "carrinho": dict(nome="Maria", variante="duvida", produto="Mentoria individual", oferta_nome="Mentoria com acompanhamento", link="https://pay.cakto.com.br/exemplo", link_sair=PUBLIC_URL + "/sair/exemplo"),
+        "pagamento": dict(nome="Maria", variante="pix_expirou", produto="Mentoria com acompanhamento", link="https://pay.cakto.com.br/exemplo", link_sair=PUBLIC_URL + "/sair/exemplo"),
+        "onboarding": dict(nome="Maria", variante="primeiro_passo", produto="Mentoria com acompanhamento", link_login=PUBLIC_URL + "/login", link_esqueci=PUBLIC_URL + "/esqueci-senha", link_sair=PUBLIC_URL + "/sair/exemplo"),
     }
 
     @app.get("/admin/emails", response_class=HTMLResponse)
@@ -749,14 +752,29 @@ def render_email(modelo, **ctx):
     env = _emails_env()
     ctx = {"site": PUBLIC_URL, "titulo": "Área do aluno", "preheader": "", **ctx}
     try:
-        assunto = json.load(open(os.path.join(EMAILS_DIR, "assuntos.json"), encoding="utf-8")).get(modelo, "Área do aluno")
+        assuntos = json.load(open(os.path.join(EMAILS_DIR, "assuntos.json"), encoding="utf-8"))
+        assunto = assuntos.get(f"{modelo}.{ctx.get('variante', '')}") or assuntos.get(modelo, "Área do aluno")
     except (OSError, ValueError):
         assunto = "Área do aluno"
     ctx.setdefault("preheader", assunto)
     return assunto, env.get_template(modelo + ".html").render(**ctx), env.get_template(modelo + ".txt").render(**ctx)
 
 
-def send_email(to, subject, text, html=None):
+def post_webhook(payload):
+    """POST JSON para o webhook de saida (ex.: o fluxo de WhatsApp). Devolve (ok, erro)."""
+    url = os.environ.get("NOTIFY_WEBHOOK_URL", "")
+    if not url:
+        return False, "NOTIFY_WEBHOOK_URL nao configurado"
+    try:
+        import urllib.request
+        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json", "X-Notify-Token": os.environ.get("NOTIFY_WEBHOOK_TOKEN", "")}, method="POST")
+        urllib.request.urlopen(req, timeout=15).read()
+        return True, ""
+    except Exception as e:  # noqa: BLE001
+        return False, str(e)[:200]
+
+
+def send_email(to, subject, text, html=None, list_unsub=None):
     """Envia por SMTP (STARTTLS na 587, ou SSL na 465), com versao HTML opcional. Devolve (ok, erro)."""
     host = os.environ.get("SMTP_HOST", "")
     if not host:
@@ -769,6 +787,8 @@ def send_email(to, subject, text, html=None):
         m["Subject"] = subject
         m["From"] = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "nao-responda@rangeltech.net"))
         m["To"] = to
+        if list_unsub:
+            m["List-Unsubscribe"] = f"<{list_unsub}>"
         m.set_content(text)
         if html:
             m.add_alternative(html, subtype="html")
@@ -846,8 +866,9 @@ def fmt_cpf(d):
 
 
 def process_cakto(event, d):
-    if event == "checkout_abandonment":
-        return process_abandon(d)
+    from . import ciclo
+    if event in ciclo.EVENTOS:
+        return ciclo.registrar_evento(event, d)
     oid = str(d.get("id") or "").strip()
     if not oid:
         return "sem_id"
@@ -898,6 +919,8 @@ def process_cakto(event, d):
             db.x("INSERT OR IGNORE INTO purchases(order_id,ref,user_id,product_id,source,created_at) VALUES (?,?,?,?,?,?)",
                  (oid, str(d.get("refId") or ""), uid, str(prod.get("id") or ""), "cakto", core.iso(core.now())))
             result = "liberado"
+            ciclo.fechar_por_compra(email, cpf)
+            ciclo.agendar_onboarding(uid, login_email, nome, str(cust.get("phone") or cust.get("whatsapp") or ""), str(prod.get("id") or ""))
             cpf_user = cpf or (usr["cpf"] if usr else "")
             assunto, html, texto = render_email("acesso", nome=nome.split(" ")[0], produto=limpa_nome(mapa["label"]) or "sua compra", login=login_email,
                                                 cpf_fmt=fmt_cpf(cpf_user) if cpf_user else "", senha_temporaria=senha,

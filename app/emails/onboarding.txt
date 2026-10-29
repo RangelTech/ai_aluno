@@ -1,0 +1,13 @@
+{% if variante == 'primeiro_passo' %}Oi, {{ nome }}! Seu acesso está te esperando.
+
+Sua compra de {{ produto }} foi confirmada, mas você ainda não entrou na área do aluno. Os dados de acesso estão no e-mail que enviamos logo depois da compra (confira o spam).
+{% else %}Oi, {{ nome }}! Precisa de ajuda para entrar?
+
+Percebi que você ainda não acessou a área do aluno. Se perdeu os dados, use "Esqueci a senha" e informe seu e-mail ou CPF.
+{% endif %}
+
+Entrar: {{ link_login }}
+Esqueci a senha: {{ link_esqueci }}
+
+Lucas Rangel · Rangel Tech
+{% if link_sair %}Não quero mais receber: {{ link_sair }}{% endif %}

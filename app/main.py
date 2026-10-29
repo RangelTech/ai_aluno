@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import core, db, extras, media
+from . import ciclo, core, db, extras, media
 
 BASE = os.path.dirname(__file__)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -857,3 +857,4 @@ async def kiwify(request: Request):
 
 
 extras.setup(app, me, page, form, back, T)
+ciclo.setup(app, me, page, form, back, T, extras)

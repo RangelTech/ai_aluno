@@ -7,6 +7,9 @@ Tudo que o sistema envia por e-mail está nesta pasta. Edite os arquivos e faça
 | `acesso.html` / `acesso.txt` | Compra aprovada: login, senha temporária (troca obrigatória no primeiro acesso) e botão para entrar |
 | `redefinir.html` / `redefinir.txt` | "Esqueci a senha": link de uso único para criar uma nova |
 | `oferta.html` / `oferta.txt` | Checkout abandonado: oferta mais leve (downsell) |
+| `carrinho.html` / `.txt` | Carrinho abandonado (4 passos: dúvida, lembrete, downsell, última) |
+| `pagamento.html` / `.txt` | Pix/boleto não pago e cartão recusado |
+| `onboarding.html` / `.txt` | Comprou e ainda não entrou na área do aluno |
 | `_layout.html` | Moldura de todos (topo, cores, rodapé). Mude aqui para mudar todos de uma vez |
 | `assuntos.json` | Assunto de cada e-mail |
 

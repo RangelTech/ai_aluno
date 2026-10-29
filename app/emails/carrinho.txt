@@ -1,0 +1,19 @@
+{% if variante == 'duvida' %}Oi, {{ nome }}, ficou com alguma dúvida?
+
+Vi que você começou a compra de {{ produto }} e não chegou ao fim. Se travou em alguma coisa, me responde que eu resolvo com você.
+{% elif variante == 'lembrete' %}Oi, {{ nome }}! Seu carrinho continua aberto.
+
+A compra de {{ produto }} está do jeito que você deixou. Se quiser retomar, é só abrir o link.
+{% elif variante == 'downsell' %}Oi, {{ nome }}! Que tal começar de um jeito mais leve?
+
+Se {{ produto }} não era o momento, existe a opção {{ oferta_nome }}. Dá para começar por ela e evoluir depois.
+{% else %}Oi, {{ nome }}. Última mensagem sobre isso.
+
+Não quero te incomodar, então esta é a última vez que escrevo sobre {{ produto }}. Se um dia fizer sentido, o link continua valendo.
+{% endif %}
+
+{{ link }}
+
+Qualquer dúvida, é só responder.
+Lucas Rangel · Rangel Tech
+{% if link_sair %}Não quero mais receber: {{ link_sair }}{% endif %}

@@ -1,0 +1,35 @@
+{#
+  Pagamento pendente: Pix/boleto gerado e não pago, ou cartão recusado.
+  Variáveis: variante (pix_pendente | pix_expirou | boleto_lembrete | boleto_vencido | recusado | recusado_lembrete), nome, produto, link (novo checkout), link_sair, site.
+  Sem valores em reais.
+#}
+{% extends "_layout.html" %}
+{% block conteudo %}
+{% if variante == 'pix_pendente' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Seu Pix está esperando por você</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! Você gerou o Pix de <b style="color:#ffffff;">{{ produto }}</b> e o pagamento ainda não apareceu. Se já pagou, pode ignorar. Se não, é só concluir pelo app do seu banco.</p>
+{% elif variante == 'pix_expirou' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Seu Pix expirou, mas dá para gerar outro</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! O Pix de <b style="color:#ffffff;">{{ produto }}</b> perdeu a validade. Sem problema: abra o link e gere um novo em segundos.</p>
+{% elif variante == 'boleto_lembrete' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Lembrete do seu boleto</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! O boleto de <b style="color:#ffffff;">{{ produto }}</b> ainda não foi pago. Se já pagou, o banco pode levar até 2 dias úteis para avisar. Se não, ainda dá para pagar.</p>
+{% elif variante == 'boleto_vencido' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Seu boleto venceu</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! O boleto de <b style="color:#ffffff;">{{ produto }}</b> venceu. Dá para gerar uma nova forma de pagamento (inclusive Pix, que cai na hora) pelo link abaixo.</p>
+{% elif variante == 'recusado' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">O pagamento não passou</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! A compra de <b style="color:#ffffff;">{{ produto }}</b> foi recusada pelo cartão. Isso é comum e costuma ser algo simples (limite, dados ou bloqueio do banco). Tente de novo, com outro cartão ou por Pix.</p>
+{% else %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Posso ajudar com o pagamento?</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! A compra de <b style="color:#ffffff;">{{ produto }}</b> não chegou a ser concluída. Se algo atrapalhou, me responde este e-mail e a gente resolve junto.</p>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px 0;"><tr>
+  <td align="center" bgcolor="#5eb0ff" style="border-radius:999px;background:linear-gradient(180deg,#6dbbff,#3d93f2);">
+    <a href="{{ link }}" style="display:inline-block;padding:15px 34px;font-size:16px;font-weight:700;color:#04101f;text-decoration:none;border-radius:999px;">Concluir a compra</a>
+  </td>
+</tr></table>
+
+<p style="margin:0;font-size:14.5px;line-height:1.6;color:#8fa3c2;">Qualquer dúvida, é só responder este e-mail.</p>
+{% endblock %}

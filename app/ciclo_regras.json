@@ -1,0 +1,48 @@
+{
+  "_leia": "Regras do ciclo de vida (recuperacao de venda e boas-vindas). Edite os numeros e faca um novo release. 'apos_horas' conta desde o evento (carrinho abandonado, pix gerado...). Cada pessoa recebe no maximo 1 mensagem por dia, so dentro da janela de envio, e para de receber ao comprar, ao pedir para sair ou depois de 'max_dias'.",
+  "janela_envio": { "inicio": 8, "fim": 20 },
+  "min_espera_horas": 1,
+  "max_dias": 21,
+  "limite_por_execucao": 200,
+  "tipos": {
+    "carrinho": {
+      "_descricao": "Comecou a compra e nao finalizou",
+      "passos": [
+        { "apos_horas": 1,   "modelo": "carrinho", "variante": "duvida",   "canais": ["email", "whatsapp"] },
+        { "apos_horas": 24,  "modelo": "carrinho", "variante": "lembrete", "canais": ["email", "whatsapp"] },
+        { "apos_horas": 72,  "modelo": "carrinho", "variante": "downsell", "canais": ["email", "whatsapp"], "usa_downsell": true },
+        { "apos_horas": 168, "modelo": "carrinho", "variante": "ultima",   "canais": ["email"] }
+      ]
+    },
+    "pix": {
+      "_descricao": "Gerou o Pix e nao pagou",
+      "passos": [
+        { "apos_horas": 2,  "modelo": "pagamento", "variante": "pix_pendente", "canais": ["email", "whatsapp"] },
+        { "apos_horas": 26, "modelo": "pagamento", "variante": "pix_expirou",  "canais": ["email", "whatsapp"] },
+        { "apos_horas": 96, "modelo": "carrinho",  "variante": "downsell",     "canais": ["email"], "usa_downsell": true }
+      ]
+    },
+    "boleto": {
+      "_descricao": "Gerou o boleto e nao pagou",
+      "passos": [
+        { "apos_horas": 24,  "modelo": "pagamento", "variante": "boleto_lembrete", "canais": ["email", "whatsapp"] },
+        { "apos_horas": 120, "modelo": "pagamento", "variante": "boleto_vencido",  "canais": ["email", "whatsapp"] },
+        { "apos_horas": 192, "modelo": "carrinho",  "variante": "downsell",        "canais": ["email"], "usa_downsell": true }
+      ]
+    },
+    "recusado": {
+      "_descricao": "Pagamento recusado (cartao)",
+      "passos": [
+        { "apos_horas": 1,  "modelo": "pagamento", "variante": "recusado",          "canais": ["email", "whatsapp"] },
+        { "apos_horas": 48, "modelo": "pagamento", "variante": "recusado_lembrete", "canais": ["email"] }
+      ]
+    },
+    "onboarding": {
+      "_descricao": "Comprou e ainda nao entrou na area do aluno",
+      "passos": [
+        { "apos_horas": 48,  "modelo": "onboarding", "variante": "primeiro_passo", "canais": ["email", "whatsapp"], "se_nunca_entrou": true },
+        { "apos_horas": 120, "modelo": "onboarding", "variante": "ajuda",          "canais": ["email", "whatsapp"], "se_nunca_entrou": true }
+      ]
+    }
+  }
+}

@@ -5,7 +5,7 @@
   <p class="muted">Os modelos ficam na pasta <code>app/emails</code> do projeto (HTML e texto, com as cores da marca e sem preços). Edite lá e publique uma nova versão. Aqui você vê como ficou e manda um exemplo para a caixa de teste{% if dest %} (<code>{{ dest }}</code>){% endif %}.</p></div></div>
 <div class="grid g3">
 {% for n in nomes %}
-  <div class="card"><h3>{{ {'acesso': 'Acesso após a compra', 'redefinir': 'Esqueci a senha', 'oferta': 'Oferta (checkout abandonado)'}[n] }}</h3>
+  <div class="card"><h3>{{ {'acesso': 'Acesso após a compra', 'redefinir': 'Esqueci a senha', 'oferta': 'Oferta (avulsa)', 'carrinho': 'Carrinho abandonado', 'pagamento': 'Pagamento pendente', 'onboarding': 'Ainda não entrou'}[n] }}</h3>
     <p class="muted small" style="margin:8px 0 14px"><code>{{ n }}.html</code> · <code>{{ n }}.txt</code></p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn sm" href="/admin/emails/{{ n }}" target="_blank" rel="noopener">Pré-visualizar</a>
     {% if smtp_ativo %}<form method="post" action="/admin/emails/{{ n }}/enviar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm pri" type="submit">Enviar exemplo</button></form>{% endif %}</div></div>

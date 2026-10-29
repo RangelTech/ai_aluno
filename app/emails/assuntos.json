@@ -1,5 +1,20 @@
 {
   "acesso": "Seu acesso à área do aluno está liberado",
   "redefinir": "Criar uma nova senha na área do aluno",
-  "oferta": "Posso te ajudar a começar?"
+  "oferta": "Posso te ajudar a começar?",
+  "carrinho": "Posso te ajudar com a sua compra?",
+  "carrinho.duvida": "Ficou com alguma dúvida?",
+  "carrinho.lembrete": "Seu carrinho continua aberto",
+  "carrinho.downsell": "Que tal começar de um jeito mais leve?",
+  "carrinho.ultima": "Última mensagem sobre a sua compra",
+  "pagamento": "Sobre o pagamento da sua compra",
+  "pagamento.pix_pendente": "Seu Pix está esperando por você",
+  "pagamento.pix_expirou": "Seu Pix expirou: gere outro em segundos",
+  "pagamento.boleto_lembrete": "Lembrete do seu boleto",
+  "pagamento.boleto_vencido": "Seu boleto venceu",
+  "pagamento.recusado": "O pagamento não passou",
+  "pagamento.recusado_lembrete": "Posso ajudar com o pagamento?",
+  "onboarding": "Seu acesso à área do aluno",
+  "onboarding.primeiro_passo": "Seu acesso está te esperando",
+  "onboarding.ajuda": "Precisa de ajuda para entrar?"
 }

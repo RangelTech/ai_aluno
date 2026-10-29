@@ -1,0 +1,21 @@
+{#
+  Boas-vindas para quem comprou e ainda não entrou na área do aluno.
+  Variáveis: variante (primeiro_passo | ajuda), nome, produto, link_login, link_esqueci, link_sair, site.
+#}
+{% extends "_layout.html" %}
+{% block conteudo %}
+{% if variante == 'primeiro_passo' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Seu acesso está te esperando</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! Sua compra de <b style="color:#ffffff;">{{ produto }}</b> foi confirmada, mas você ainda não entrou na área do aluno. Os dados de acesso estão no e-mail que enviamos logo depois da compra (confira também o spam).</p>
+{% else %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Precisa de ajuda para entrar?</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Oi, {{ nome }}! Percebi que você ainda não acessou a área do aluno. Se perdeu os dados, use “Esqueci a senha” e informe seu e-mail ou CPF. Se algo travar, é só responder este e-mail.</p>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px 0;"><tr>
+  <td align="center" bgcolor="#5eb0ff" style="border-radius:999px;background:linear-gradient(180deg,#6dbbff,#3d93f2);">
+    <a href="{{ link_login }}" style="display:inline-block;padding:15px 34px;font-size:16px;font-weight:700;color:#04101f;text-decoration:none;border-radius:999px;">Entrar na área do aluno</a>
+  </td>
+</tr></table>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#8fa3c2;">Esqueceu a senha? <a href="{{ link_esqueci }}" style="color:#9cc9ff;">Criar uma nova</a></p>
+{% endblock %}
