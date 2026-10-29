@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import io
 import json
+import re
 import os
 import secrets
 import time
@@ -578,6 +579,91 @@ def setup(app, me, page, form, back, T):
         core.audit(u["id"], "product_save", pid, (f.get("label") or "")[:80])
         return back("/admin/produtos", ok="Produto salvo.")
 
+    # ---- esqueci a senha (por e-mail ou CPF) e redefinicao por link de uso unico
+    @app.get("/esqueci-senha", response_class=HTMLResponse)
+    def esqueci_get(request: Request):
+        return T.TemplateResponse(request, "esqueci.html", {"user": None, "csrf": "", "ok": None, "erro": None, "enviado": False})
+
+    @app.post("/esqueci-senha", response_class=HTMLResponse)
+    async def esqueci_post(request: Request):
+        f = await request.form()
+        ident = (f.get("ident") or "").strip()
+        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+        key = f"fp|{ip}"
+        if core.login_blocked(key):
+            return T.TemplateResponse(request, "esqueci.html", {"user": None, "csrf": "", "ok": None, "erro": "Muitas tentativas. Aguarde alguns minutos.", "enviado": False}, status_code=429)
+        core.login_fail(key)  # conta toda tentativa (sao 8 por 15 minutos)
+        usr = core.find_user(ident)
+        if usr:
+            tok = make_access_token(usr["id"], hours=1)
+            assunto, html, texto = render_email("redefinir", nome=usr["name"].split(" ")[0], link=f"{PUBLIC_URL}/redefinir?t={tok}", validade_horas=1)
+            ok, err = send_email(usr["email"], assunto, texto, html)
+            core.audit(usr["id"], "password_reset_email" if ok else "password_reset_email_fail", usr["email"], err)
+        # resposta igual com ou sem conta: nao revela quem tem cadastro
+        return T.TemplateResponse(request, "esqueci.html", {"user": None, "csrf": "", "ok": None, "erro": None, "enviado": True})
+
+    @app.get("/redefinir", response_class=HTMLResponse)
+    def redefinir_get(request: Request):
+        t = request.query_params.get("t", "")
+        tu = token_user(t)
+        return T.TemplateResponse(request, "redefinir_senha.html", {"user": None, "csrf": "", "ok": None, "token": t if tu else "",
+                                                                    "erro": None if tu else "Esse link expirou ou já foi usado. Peça um novo em “Esqueci a senha”."})
+
+    @app.post("/redefinir")
+    async def redefinir_post(request: Request):
+        f = await request.form()
+        t = (f.get("t") or "").strip()
+        tu = token_user(t)
+        nova, conf = f.get("senha") or "", f.get("confirma") or ""
+
+        def erro(msg, status=400):
+            return T.TemplateResponse(request, "redefinir_senha.html", {"user": None, "csrf": "", "ok": None, "token": t if tu else "", "erro": msg}, status_code=status)
+
+        if not tu:
+            return erro("Esse link expirou ou já foi usado. Peça um novo em “Esqueci a senha”.")
+        if len(nova) < 10 or nova != conf:
+            return erro("A senha precisa ter 10 ou mais caracteres e ser igual à confirmação.")
+        db.x("UPDATE access_tokens SET used_at=? WHERE token_hash=?", (core.iso(core.now()), hashlib.sha256(t.encode()).hexdigest()))
+        db.x("UPDATE users SET pw_hash=?, must_change=0 WHERE id=?", (core.hash_pw(nova), tu["id"]))
+        db.x("DELETE FROM sessions WHERE user_id=?", (tu["id"],))
+        tok = core.new_session(tu["id"])
+        core.audit(tu["id"], "password_reset", f"user:{tu['id']}")
+        r = RedirectResponse("/", 303)
+        r.set_cookie("sid", tok, max_age=core.SESSION_DAYS * 86400, httponly=True, secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https", samesite="lax", path="/")
+        return r
+
+    # ---- e-mails: pre-visualizacao e envio de exemplo (para quem edita os modelos)
+    EXEMPLOS = {
+        "acesso": dict(nome="Maria", produto="Mentoria com acompanhamento", login="maria@exemplo.com", cpf_fmt="123.456.789-09", senha_temporaria="K7mP4qXw2R",
+                       link_login=PUBLIC_URL + "/login", link_esqueci=PUBLIC_URL + "/esqueci-senha"),
+        "redefinir": dict(nome="Maria", link=PUBLIC_URL + "/redefinir?t=exemplo", validade_horas=1),
+        "oferta": dict(nome="Maria", produto="Mentoria individual", oferta_nome="Mentoria com acompanhamento", link="https://pay.cakto.com.br/exemplo"),
+    }
+
+    @app.get("/admin/emails", response_class=HTMLResponse)
+    def admin_emails(request: Request):
+        u = me(request, admin=True)
+        return page(request, "admin_emails.html", u, nomes=list(EXEMPLOS), smtp_ativo=smtp_ativo(), dest=os.environ.get("SMTP_USER", ""))
+
+    @app.get("/admin/emails/{nome}", response_class=HTMLResponse)
+    def admin_email_preview(request: Request, nome: str):
+        me(request, admin=True)
+        if nome not in EXEMPLOS:
+            raise HTTPException(404, "Modelo não encontrado.")
+        return HTMLResponse(render_email(nome, **EXEMPLOS[nome])[1])
+
+    @app.post("/admin/emails/{nome}/enviar")
+    async def admin_email_enviar(request: Request, nome: str):
+        u = me(request, admin=True)
+        await form(request, u)
+        if nome not in EXEMPLOS:
+            raise HTTPException(404, "Modelo não encontrado.")
+        dest = os.environ.get("SMTP_USER") or u["email"]
+        assunto, html, texto = render_email(nome, **EXEMPLOS[nome])
+        ok, err = send_email(dest, "[EXEMPLO] " + assunto, texto, html)
+        core.audit(u["id"], "email_example", f"{nome} -> {dest}", err)
+        return back("/admin/emails", ok=f"Exemplo enviado para {dest}." if ok else None, erro=None if ok else f"Não consegui enviar: {err}")
+
     @app.get("/primeiro-acesso", response_class=HTMLResponse)
     def primeiro_acesso(request: Request):
         t = request.query_params.get("t", "")
@@ -625,11 +711,11 @@ def setup(app, me, page, form, back, T):
         return r
 
 
-def make_access_token(uid):
-    """Link de primeiro acesso de uso unico (7 dias). So o hash fica no banco."""
+def make_access_token(uid, hours=168):
+    """Link de uso unico (padrao 7 dias). So o hash fica no banco."""
     tok = secrets.token_urlsafe(24)
     db.x("INSERT INTO access_tokens(token_hash,user_id,expires_at) VALUES (?,?,?)",
-         (hashlib.sha256(tok.encode()).hexdigest(), uid, core.iso(core.now() + timedelta(days=7))))
+         (hashlib.sha256(tok.encode()).hexdigest(), uid, core.iso(core.now() + timedelta(hours=hours))))
     return tok
 
 
@@ -646,8 +732,32 @@ def smtp_ativo():
     return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_PASSWORD"))
 
 
-def send_email(to, subject, text):
-    """Envia por SMTP (STARTTLS na 587, ou SSL na 465). Devolve (ok, erro)."""
+EMAILS_DIR = os.path.join(os.path.dirname(__file__), "emails")
+_ENV = None
+
+
+def _emails_env():
+    global _ENV
+    if _ENV is None:
+        from jinja2 import Environment, FileSystemLoader, select_autoescape
+        _ENV = Environment(loader=FileSystemLoader(EMAILS_DIR), autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
+    return _ENV
+
+
+def render_email(modelo, **ctx):
+    """Monta (assunto, html, texto) a partir de app/emails/<modelo>.html|.txt. Edite la; nao aqui."""
+    env = _emails_env()
+    ctx = {"site": PUBLIC_URL, "titulo": "Área do aluno", "preheader": "", **ctx}
+    try:
+        assunto = json.load(open(os.path.join(EMAILS_DIR, "assuntos.json"), encoding="utf-8")).get(modelo, "Área do aluno")
+    except (OSError, ValueError):
+        assunto = "Área do aluno"
+    ctx.setdefault("preheader", assunto)
+    return assunto, env.get_template(modelo + ".html").render(**ctx), env.get_template(modelo + ".txt").render(**ctx)
+
+
+def send_email(to, subject, text, html=None):
+    """Envia por SMTP (STARTTLS na 587, ou SSL na 465), com versao HTML opcional. Devolve (ok, erro)."""
     host = os.environ.get("SMTP_HOST", "")
     if not host:
         return False, "SMTP nao configurado"
@@ -660,6 +770,8 @@ def send_email(to, subject, text):
         m["From"] = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "nao-responda@rangeltech.net"))
         m["To"] = to
         m.set_content(text)
+        if html:
+            m.add_alternative(html, subtype="html")
         port = int(os.environ.get("SMTP_PORT", "587"))
         if port == 465:
             s = smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context())
@@ -675,10 +787,10 @@ def send_email(to, subject, text):
         return False, str(e)[:200]
 
 
-def notify_buyer(email, name, phone, text):
+def notify_buyer(email, name, phone, text, html=None, subject="Seu acesso à área do aluno"):
     """Entrega a mensagem de boas-vindas por e-mail (SMTP) e/ou por um webhook de saida (ex.: o fluxo de WhatsApp). Falha nunca derruba a venda."""
     if os.environ.get("SMTP_HOST"):
-        ok, err = send_email(email, "Seu acesso à área do aluno", text)
+        ok, err = send_email(email, subject, text, html)
         core.audit(None, "welcome_email_sent" if ok else "welcome_email_fail", email, err)
     url = os.environ.get("NOTIFY_WEBHOOK_URL", "")
     if url:
@@ -710,11 +822,27 @@ def process_abandon(d):
     if db.one("SELECT 1 AS ok FROM webhook_events WHERE event_id=?", (eid,)):
         return "duplicado"
     nome = str(cust.get("name") or d.get("name") or email.split("@")[0])
-    notify_buyer(email, nome, str(cust.get("phone") or cust.get("whatsapp") or d.get("phone") or ""),
-                 f"Oi, {nome.split(' ')[0]}! Vi que você começou a compra de {mapa['label'] or 'uma mentoria'} e não finalizou. "
-                 f"Se quiser um jeito mais leve de começar, tem esta opção: {nxt['pay_url']}\nQualquer dúvida, é só responder por aqui.")
+    assunto, html, texto = render_email("oferta", nome=nome.split(" ")[0], produto=limpa_nome(mapa["label"]) or "a mentoria",
+                                        oferta_nome=limpa_nome(nxt["label"]) or "uma opção mais leve", link=nxt["pay_url"])
+    notify_buyer(email, nome, str(cust.get("phone") or cust.get("whatsapp") or d.get("phone") or ""), texto, html, assunto)
     db.x("INSERT INTO webhook_events(event_id,kind,received_at,status) VALUES (?,?,?,?)", (eid, "checkout_abandonment", core.iso(core.now()), "downsell_enviado"))
     return "downsell_enviado"
+
+
+SENHA_ALFABETO = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+def senha_temporaria():
+    return "".join(secrets.choice(SENHA_ALFABETO) for _ in range(10))
+
+
+def limpa_nome(label):
+    """Nome do produto sem valor em reais (o e-mail nao pode ter preco, que muda)."""
+    return re.sub(r"\s*\(?R\$\s*[\d\.,]+[^)]*\)?", "", str(label or "")).strip()
+
+
+def fmt_cpf(d):
+    return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}" if len(d) == 11 else d
 
 
 def process_cakto(event, d):
@@ -735,15 +863,29 @@ def process_cakto(event, d):
                 break
     cust = d.get("customer") or {}
     email = str(cust.get("email") or "").strip().lower()
+    cpf = core.only_digits(cust.get("docNumber") or cust.get("cpf") or "")
+    cpf = cpf if len(cpf) in (11, 14) else ""
     result = "ignorado"
     if mapa and core.EMAIL_RE.match(email):
-        usr = db.one("SELECT * FROM users WHERE email=?", (email,))
+        # o CPF identifica a pessoa mesmo que ela compre com e-mails diferentes
+        usr = (db.one("SELECT * FROM users WHERE cpf=? AND active=1 ORDER BY id LIMIT 1", (cpf,)) if cpf else None) or db.one("SELECT * FROM users WHERE email=?", (email,))
         if event == "purchase_approved":
+            senha = ""
+            nome = str(cust.get("name") or email.split("@")[0]).strip()[:120]
             if not usr:
-                uid = db.x("INSERT INTO users(email,name,role,pw_hash,must_change,created_at) VALUES (?,?, 'aluno', ?, 1, ?)",
-                           (email, (cust.get("name") or email.split("@")[0])[:120], core.hash_pw(secrets.token_urlsafe(24)), core.iso(core.now())))
+                senha = senha_temporaria()
+                uid = db.x("INSERT INTO users(email,name,role,pw_hash,must_change,created_at,cpf) VALUES (?,?, 'aluno', ?, 1, ?, ?)",
+                           (email, nome, core.hash_pw(senha), core.iso(core.now()), cpf))
+                login_email = email
             else:
                 uid = usr["id"]
+                login_email = usr["email"]
+                nome = usr["name"]
+                if cpf and not usr["cpf"]:
+                    db.x("UPDATE users SET cpf=? WHERE id=?", (cpf, uid))
+                if not usr["last_login"] and usr["must_change"]:  # nunca entrou: manda uma senha temporaria nova
+                    senha = senha_temporaria()
+                    db.x("UPDATE users SET pw_hash=?, must_change=1 WHERE id=?", (core.hash_pw(senha), uid))
             why = f"pedido {oid}"
             if mapa["course_id"]:
                 core.grant(uid, "curso", mapa["course_id"], "cakto_purchase", None, why)
@@ -756,13 +898,11 @@ def process_cakto(event, d):
             db.x("INSERT OR IGNORE INTO purchases(order_id,ref,user_id,product_id,source,created_at) VALUES (?,?,?,?,?,?)",
                  (oid, str(d.get("refId") or ""), uid, str(prod.get("id") or ""), "cakto", core.iso(core.now())))
             result = "liberado"
-            cur = db.one("SELECT last_login, name FROM users WHERE id=?", (uid,))
-            if not cur["last_login"]:
-                link = f"{PUBLIC_URL}/primeiro-acesso?t={make_access_token(uid)}"
-                ref = str(d.get("refId") or oid[:8])
-                notify_buyer(email, cur["name"], str(cust.get("phone") or cust.get("whatsapp") or ""),
-                             f"Oi, {cur['name'].split(' ')[0]}! Sua compra foi confirmada. Crie sua senha e entre na área do aluno: {link}\n"
-                             f"Se preferir entrar pelo e-mail da compra, o código do seu pedido é {ref} (em {PUBLIC_URL}/primeiro-acesso).")
+            cpf_user = cpf or (usr["cpf"] if usr else "")
+            assunto, html, texto = render_email("acesso", nome=nome.split(" ")[0], produto=limpa_nome(mapa["label"]) or "sua compra", login=login_email,
+                                                cpf_fmt=fmt_cpf(cpf_user) if cpf_user else "", senha_temporaria=senha,
+                                                link_login=f"{PUBLIC_URL}/login", link_esqueci=f"{PUBLIC_URL}/esqueci-senha")
+            notify_buyer(email, nome, str(cust.get("phone") or cust.get("whatsapp") or ""), texto, html, assunto)
         elif event in ("refund", "chargeback") and usr:
             for e in db.q("SELECT id FROM entitlements WHERE user_id=? AND source='cakto_purchase' AND status='active' AND reason LIKE ?", (usr["id"], f"%{oid}%")):
                 core.revoke(e["id"], None, f"{event} pedido {oid}")

@@ -77,7 +77,7 @@ def me(request, admin=False):
         raise NeedLogin()
     if admin and u["role"] != "admin":
         raise HTTPException(403, "Área restrita ao administrador.")
-    if u["must_change"] and request.url.path not in ("/perfil", "/logout"):
+    if u["must_change"] and request.url.path not in ("/perfil", "/perfil/senha", "/logout"):
         raise HTTPException(307, "must_change", headers={"Location": "/perfil?troca=1"})
     return u
 
@@ -159,12 +159,12 @@ async def login_post(request: Request):
     key = f"{client_ip(request)}|{email}"
     if core.login_blocked(key):
         return T.TemplateResponse(request, "login.html", {"user": None, "erro": "Muitas tentativas. Aguarde alguns minutos.", "next": "/"}, status_code=429)
-    u = db.one("SELECT * FROM users WHERE email=? AND active=1", (email,))
+    u = core.find_user(email)
     ok = core.check_pw(f.get("password") or "", u["pw_hash"]) if u else core.check_pw("x", "$2b$12$" + "a" * 53)
     if not (u and ok):
         core.login_fail(key)
         core.audit(None, "login_fail", email)
-        return T.TemplateResponse(request, "login.html", {"user": None, "erro": "E-mail ou senha incorretos.", "next": safe_next(f.get("next"))}, status_code=401)
+        return T.TemplateResponse(request, "login.html", {"user": None, "erro": "Login ou senha incorretos.", "next": safe_next(f.get("next"))}, status_code=401)
     core.login_ok(key)
     tok = core.new_session(u["id"])
     core.audit(u["id"], "login", email)

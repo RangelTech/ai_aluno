@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS certificates (
 # colunas novas em tabelas que ja existem em producao (SQLite nao tem ADD COLUMN IF NOT EXISTS)
 MIGRATIONS = [
     ("users", "photo", "ALTER TABLE users ADD COLUMN photo TEXT NOT NULL DEFAULT ''"),
+    ("users", "cpf", "ALTER TABLE users ADD COLUMN cpf TEXT NOT NULL DEFAULT ''"),
     ("kiwify_products", "price", "ALTER TABLE kiwify_products ADD COLUMN price REAL NOT NULL DEFAULT 0"),
     ("kiwify_products", "description", "ALTER TABLE kiwify_products ADD COLUMN description TEXT NOT NULL DEFAULT ''"),
     ("kiwify_products", "hidden", "ALTER TABLE kiwify_products ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
@@ -107,6 +108,7 @@ def init():
         for table, col, ddl in MIGRATIONS:
             if col not in [r[1] for r in c.execute(f"PRAGMA table_info({table})").fetchall()]:
                 c.execute(ddl)
+        c.execute("CREATE INDEX IF NOT EXISTS ix_users_cpf ON users(cpf)")
 
 
 def q(sql, args=()):

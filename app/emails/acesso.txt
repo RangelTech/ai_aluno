@@ -1,0 +1,17 @@
+Oi, {{ nome }}!
+
+Sua compra de {{ produto }} foi confirmada e o seu acesso à área do aluno já está liberado.
+{% if senha_temporaria %}
+Seus dados de acesso
+Login: {{ login }}{% if cpf_fmt %} (ou o seu CPF: {{ cpf_fmt }}){% endif %}
+Senha temporária: {{ senha_temporaria }}
+
+No primeiro acesso o sistema pede para você criar uma senha só sua.
+{% else %}
+Entre com o seu login de sempre: {{ login }}. Se não lembra da senha, use "Esqueci a senha" na tela de entrada.
+{% endif %}
+Entrar: {{ link_login }}
+Esqueci a senha (e-mail ou CPF): {{ link_esqueci }}
+
+Qualquer dúvida, é só responder este e-mail.
+Lucas Rangel · Rangel Tech

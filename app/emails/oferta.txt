@@ -1,0 +1,9 @@
+Oi, {{ nome }}, tudo bem?
+
+Vi que você começou a compra de {{ produto }} e não chegou ao fim. Acontece, sem problema nenhum.
+Se quiser um jeito mais leve de começar, existe a opção {{ oferta_nome }}:
+
+{{ link }}
+
+Qualquer dúvida, é só responder este e-mail.
+Lucas Rangel · Rangel Tech

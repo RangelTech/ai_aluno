@@ -9,9 +9,10 @@
     {% if erro %}<div class="msg er" role="alert">{{ erro }}</div>{% endif %}
     <form method="post" action="/login" autocomplete="on">
       <input type="hidden" name="next" value="{{ next }}">
-      <div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" required autofocus autocomplete="username"></div>
+      <div class="field"><label for="email">E-mail ou CPF</label><input id="email" name="email" type="text" required autofocus autocomplete="username"></div>
       <div class="field"><label for="password">Senha</label><input id="password" name="password" type="password" required autocomplete="current-password"></div>
       <button class="btn pri" style="width:100%;margin-top:6px" type="submit">Entrar</button>
+      <p class="center small" style="margin-top:14px"><a href="/esqueci-senha">Esqueci a senha</a></p>
     </form>
   </div>
   <p class="muted small center" style="margin-top:18px">Acabou de comprar? <a href="/primeiro-acesso">Crie sua senha aqui</a>.</p>

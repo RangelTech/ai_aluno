@@ -193,6 +193,23 @@ def can_join_mentoria(user, m):
     return True, ""
 
 
+def only_digits(s):
+    return re.sub(r"\D", "", str(s or ""))
+
+
+def find_user(ident):
+    """Acha a conta ativa por e-mail ou CPF (o CPF evita confusao quando a pessoa tem mais de um e-mail)."""
+    ident = (ident or "").strip().lower()
+    if not ident:
+        return None
+    if "@" in ident:
+        return db.one("SELECT * FROM users WHERE email=? AND active=1", (ident,))
+    d = only_digits(ident)
+    if len(d) in (11, 14):
+        return db.one("SELECT * FROM users WHERE cpf=? AND active=1 ORDER BY id LIMIT 1", (d,))
+    return None
+
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 

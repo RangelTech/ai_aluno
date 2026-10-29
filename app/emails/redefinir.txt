@@ -1,0 +1,10 @@
+Oi, {{ nome }}!
+
+Recebemos um pedido para redefinir a senha da sua conta na área do aluno.
+Para escolher uma nova senha, abra o link (vale {{ validade_horas }} hora(s), uso único):
+
+{{ link }}
+
+Não foi você? Ignore este e-mail: a sua senha atual continua valendo.
+
+Lucas Rangel · Rangel Tech

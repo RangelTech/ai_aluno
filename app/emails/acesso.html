@@ -1,0 +1,43 @@
+{#
+  E-mail enviado quando a compra é aprovada. Edite à vontade: textos, cores e ordem.
+  Variáveis: nome, produto, login, senha_temporaria (vazia para quem já tem conta), link_login, link_esqueci, site.
+  Não coloque valores em reais aqui: o preço muda e o e-mail ficaria desatualizado.
+#}
+{% extends "_layout.html" %}
+{% block conteudo %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Oi, {{ nome }}!</h1>
+<p style="margin:0 0 26px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Sua compra de <b style="color:#ffffff;">{{ produto }}</b> foi confirmada e o seu acesso à área do aluno já está liberado.</p>
+
+{% if senha_temporaria %}
+<p style="margin:0 0 10px 0;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#5eb0ff;">Seus dados de acesso</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#07101f;border:1px solid #22365c;border-radius:16px;">
+  <tr><td style="padding:20px 22px;">
+    <p style="margin:0 0 4px 0;font-size:13px;color:#8fa3c2;">Login</p>
+    <p style="margin:0 0 {{ '6px' if cpf_fmt else '16px' }} 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:17px;color:#ffffff;word-break:break-all;">{{ login }}</p>
+    {% if cpf_fmt %}<p style="margin:0 0 16px 0;font-size:13.5px;color:#8fa3c2;">ou o seu CPF: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d6e1f2;">{{ cpf_fmt }}</span></p>{% endif %}
+    <p style="margin:0 0 4px 0;font-size:13px;color:#8fa3c2;">Senha temporária</p>
+    <p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:22px;letter-spacing:0.04em;color:#9cc9ff;">{{ senha_temporaria }}</p>
+  </td></tr>
+</table>
+<p style="margin:14px 0 28px 0;font-size:14.5px;line-height:1.6;color:#8fa3c2;">No primeiro acesso o sistema pede para você criar uma senha só sua. A temporária deixa de valer depois disso.</p>
+{% else %}
+<p style="margin:0 0 28px 0;font-size:15.5px;line-height:1.6;color:#b9c8e0;">Entre com o seu login de sempre: <b style="color:#ffffff;">{{ login }}</b>. Se não lembra da senha, use a opção “Esqueci a senha” na tela de entrada.</p>
+{% endif %}
+
+<!-- Botão -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 30px 0;"><tr>
+  <td align="center" bgcolor="#5eb0ff" style="border-radius:999px;background:linear-gradient(180deg,#6dbbff,#3d93f2);">
+    <a href="{{ link_login }}" style="display:inline-block;padding:15px 34px;font-size:16px;font-weight:700;color:#04101f;text-decoration:none;border-radius:999px;">Entrar na área do aluno</a>
+  </td>
+</tr></table>
+
+<p style="margin:0 0 10px 0;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#5eb0ff;">O que você encontra lá dentro</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td style="padding:7px 0;font-size:15px;color:#d6e1f2;">&#10003;&nbsp; Cursos em vídeo, para assistir no seu ritmo</td></tr>
+  <tr><td style="padding:7px 0;font-size:15px;color:#d6e1f2;">&#10003;&nbsp; Mentorias ao vivo, direto na plataforma</td></tr>
+  <tr><td style="padding:7px 0;font-size:15px;color:#d6e1f2;">&#10003;&nbsp; Materiais para baixar, conquistas e certificado</td></tr>
+</table>
+
+<hr style="border:0;border-top:1px solid #22365c;margin:28px 0 18px 0;">
+<p style="margin:0;font-size:13.5px;line-height:1.6;color:#8fa3c2;">Perdeu o acesso? Na tela de entrada, clique em “Esqueci a senha” e informe o seu e-mail ou CPF: <a href="{{ link_esqueci }}" style="color:#9cc9ff;">{{ link_esqueci }}</a></p>
+{% endblock %}
