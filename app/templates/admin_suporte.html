@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Suporte no WhatsApp{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Suporte no WhatsApp</h1>
+  <p class="muted">O botão "Falar com o Lucas" só aparece para quem está liberado aqui (mentoria ou acompanhamento). Quem comprou só um curso ou produto avulso não vê o botão nem recebe o número.</p></div></div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start">
+  <div class="card tw"><h3 style="margin-bottom:10px">Quem tem suporte</h3>
+    <table><thead><tr><th>Aluno</th><th>Suporte</th><th></th></tr></thead><tbody>
+    {% for a in alunos %}<tr><td><b>{{ a.name }}</b><br><span class="muted small">{{ a.email }}</span></td>
+      <td><span class="pill {{ 'ok' if a.tem else '' }}">{{ 'Liberado' if a.tem else 'Sem suporte' }}</span></td>
+      <td style="text-align:right"><form method="post" action="/admin/suporte/{{ a.id }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+        {% if a.tem %}<button class="btn sm bad" name="acao" value="remover" type="submit">Remover</button>
+        {% else %}<input type="hidden" name="motivo" value="Mentoria com acompanhamento"><button class="btn sm pri" name="acao" value="liberar" type="submit">Liberar</button>{% endif %}</form></td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Nenhum aluno cadastrado.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><h3>Número e mensagem</h3>
+    <form method="post" action="/admin/suporte/config" style="margin-top:14px"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label for="numero">WhatsApp (país + DDD + número)</label><input id="numero" name="numero" type="text" value="{{ numero }}" required inputmode="numeric"></div>
+      <div class="field"><label for="msg">Mensagem inicial</label><textarea id="msg" name="mensagem">{{ mensagem }}</textarea><p class="muted small" style="margin-top:6px">Use <code>{nome}</code> para colocar o nome do aluno.</p></div>
+      <button class="btn pri" type="submit">Salvar</button></form></div>
+</div>
+{% endblock %}

@@ -26,6 +26,17 @@
   </div>
 </div>
 
+{% if user.role != 'admin' %}
+<section class="sec"><div class="t"><h2>Minhas conquistas</h2><a href="/conquistas" class="small">Ver tudo</a></div>
+  <a class="card level" href="/conquistas" style="color:inherit">
+    <div class="lv"><span>Nível</span><b>{{ xp.nivel }}</b></div>
+    <div class="grow"><p><b>{{ xp.xp }} pontos</b> <span class="muted small">· {{ xp.prox - xp.xp }} para o próximo nível</span></p>
+      <div class="bar" style="margin:10px 0 8px"><i style="width:{{ xp.pct }}%"></i></div>
+      <p class="muted small">{{ medalhas }} medalha{{ '' if medalhas == 1 else 's' }} conquistada{{ '' if medalhas == 1 else 's' }}</p></div>
+  </a>
+</section>
+{% endif %}
+
 <section class="sec"><div class="t"><h2>Próximas mentorias</h2><a href="/mentorias" class="small">Ver todas</a></div>
   {% if mentorias %}<div class="grid">{% for m in mentorias %}{{ mentoria_card(m, user) }}{% endfor %}</div>
   {% else %}<div class="card empty">Você ainda não tem mentorias agendadas. Quando o Lucas marcar uma, ela aparece aqui e no seu calendário.</div>{% endif %}

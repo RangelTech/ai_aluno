@@ -8,7 +8,7 @@
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="apple-touch-icon" href="/static/apple-icon.png">
 <meta name="theme-color" content="#04070d">
-<link rel="stylesheet" href="/static/app.css?v=1">
+<link rel="stylesheet" href="/static/app.css?v=2">
 </head>
 <body>
 {% if user %}
@@ -16,25 +16,27 @@
 <header class="top"><div class="wrap">
   <a class="brand" href="/"><img src="/static/icon.png" alt="">Lucas Rangel <small>Área do aluno</small></a>
   <nav class="nav" aria-label="Principal">
-    <a href="/" class="{{ 'on' if p == '/' }}">Início</a>
     <a href="/cursos" class="{{ 'on' if p.startswith('/curso') or p.startswith('/aula') }}">Meus cursos</a>
     <a href="/mentorias" class="{{ 'on' if p.startswith('/mentorias') or p.startswith('/sala') }}">Mentorias</a>
     <a href="/gravacoes" class="{{ 'on' if p.startswith('/gravac') }}">Gravações</a>
     <a href="/downloads" class="{{ 'on' if p.startswith('/download') }}">Downloads</a>
+    {% if user.role != 'admin' %}<a href="/conquistas" class="{{ 'on' if p.startswith('/conquistas') }}">Conquistas</a>{% endif %}
     {% if user.role == 'admin' %}<a href="/admin" class="{{ 'on' if p.startswith('/admin') }}">Administração</a>{% endif %}
   </nav>
   <div class="who">
-    <a href="/perfil" class="avatar" title="Meu perfil">{{ user.name[:1]|upper }}</a>
+    <a href="/perfil" class="avatar" title="Meu perfil">{% if user.photo %}<img src="/foto/{{ user.id }}?v={{ user.photo }}" alt="">{% else %}{{ user.name[:1]|upper }}{% endif %}</a>
     <span class="nm">{{ user.name.split(' ')[0] }}</span>
     <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm" type="submit">Sair</button></form>
   </div>
 </div></header>
 <main><div class="wrap">
+  {% if novas and not p.startswith('/conquistas') %}<a class="msg ok conq" href="/conquistas" role="status"><b>Nova conquista:</b> {{ novas|join(', ') }}. Ver minhas conquistas</a>{% endif %}
   {% if ok %}<div class="msg ok" role="status">{{ ok }}</div>{% endif %}
   {% if erro %}<div class="msg er" role="alert">{{ erro }}</div>{% endif %}
   {% block body %}{% endblock %}
 </div></main>
 <footer class="foot"><div class="wrap">Rangel Tech · Área do aluno de Lucas Rangel. Seu acesso é pessoal e acompanhado.</div></footer>
+{% if support %}<a class="wa-fab" href="/suporte" target="_blank" rel="noopener" aria-label="Falar com o Lucas no WhatsApp"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ ICONS.chat|safe }}</svg><span>Falar com o Lucas</span></a>{% endif %}
 {% else %}
 {% block anon %}{% endblock %}
 {% endif %}

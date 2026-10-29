@@ -1,3 +1,5 @@
+{% macro icon(n, size=22) %}<svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ ICONS[n]|safe }}</svg>{% endmacro %}
+
 {% macro course_card(c) %}
 <a class="card course" href="/curso/{{ c.slug }}" style="color:inherit">
   <div class="cover"><b>{{ c.title[:2]|upper }}</b></div>

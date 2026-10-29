@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import core, db, media
+from . import core, db, extras, media
 
 BASE = os.path.dirname(__file__)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -88,7 +88,13 @@ async def _redir307(request, exc):
 
 
 def page(request, name, user, **ctx):
-    return T.TemplateResponse(request, name, {"user": user, "csrf": user["csrf"] if user else "",
+    sup = False
+    novas = []
+    if user:
+        extras.evaluate(user)
+        sup = extras.has_support(user)
+        novas = extras.unseen(user)
+    return T.TemplateResponse(request, name, {"user": user, "csrf": user["csrf"] if user else "", "support": sup, "novas": novas,
                                               "ok": request.query_params.get("ok"), "erro": request.query_params.get("erro"), **ctx})
 
 
@@ -230,7 +236,10 @@ def home(request: Request):
         ls = [l for l in lessons_of(cs[0]["id"]) if l["video_status"] == "ready"]
         if ls:
             cont = {"lesson_id": ls[0]["id"], "seconds": 0, "title": ls[0]["title"], "ctitle": cs[0]["title"], "slug": cs[0]["slug"]}
-    return page(request, "home.html", u, courses=cs, cont=cont, mentorias=my_mentorias(u, True, 3), n_assets=len(visible_assets(u)))
+    st = extras.evaluate(u)
+    medalhas = db.one("SELECT COUNT(*) n FROM badges_earned WHERE user_id=?", (u["id"],))["n"]
+    return page(request, "home.html", u, courses=cs, cont=cont, mentorias=my_mentorias(u, True, 3), n_assets=len(visible_assets(u)),
+                xp=extras.xp_info(u, st), medalhas=medalhas)
 
 
 @app.get("/cursos", response_class=HTMLResponse)
@@ -354,7 +363,7 @@ def sala(request: Request, mid: int):
         return page(request, "sala_fechada.html", u, m=m, why=msgs.get(why, why), code=why, start=core.fmt_local(m["starts_at"]))
     consent = db.one("SELECT 1 AS ok FROM consents WHERE mentoria_id=? AND user_id=? AND version=?", (mid, u["id"], CONSENT_VERSION))
     need = m["record_policy"] != "nao" and not consent
-    return page(request, "sala.html", u, m=m, need_consent=need, ice=json.dumps(ICE), start=core.fmt_local(m["starts_at"]))
+    return page(request, "sala.html", u, m=m, need_consent=need, ice=json.dumps(extras.ice_servers(u, ICE)), start=core.fmt_local(m["starts_at"]))
 
 
 @app.post("/sala/{mid}/consentimento")
@@ -407,6 +416,8 @@ async def ws_sala(ws: WebSocket, mid: int):
     await ws.send_json({"type": "welcome", "you": uid, "name": u["name"], "peers": peers})
     await broadcast(room, {"type": "peer-joined", "id": uid, "name": u["name"]}, skip=uid)
     core.audit(u["id"], "sala_join", f"mentoria:{mid}")
+    if u["role"] != "admin":
+        extras.record_attendance(mid, u["id"])
     try:
         while True:
             msg = await ws.receive_json()
@@ -633,8 +644,9 @@ def admin_curso(request: Request, cid: int):
         m["lessons"] = db.q("SELECT * FROM lessons WHERE module_id=? ORDER BY position, id", (m["id"],))
     alunos = db.q("SELECT u.id,u.name,u.email FROM entitlements e JOIN users u ON u.id=e.user_id WHERE e.resource_type='curso' AND e.resource_id=? AND e.status='active' ORDER BY u.name", (cid,))
     todos = db.q("SELECT id,name,email FROM users WHERE role<>'admin' AND active=1 ORDER BY name")
-    kp = db.one("SELECT kiwify_id FROM kiwify_products WHERE course_id=?", (cid,))
+    kp = db.one("SELECT kiwify_id, support FROM kiwify_products WHERE course_id=?", (cid,))
     return page(request, "admin_curso.html", u, c=c, mods=mods, alunos=alunos, todos=todos, kiwify=kp["kiwify_id"] if kp else "",
+                kiwify_suporte=bool(kp and kp["support"]),
                 ativos=db.q("SELECT * FROM assets WHERE course_id=?", (cid,)))
 
 
@@ -660,7 +672,7 @@ async def admin_curso_salvar(request: Request, cid: int):
         kid = (f.get("kiwify_id") or "").strip()
         db.x("DELETE FROM kiwify_products WHERE course_id=?", (cid,))
         if kid:
-            db.x("INSERT OR REPLACE INTO kiwify_products(kiwify_id, course_id) VALUES (?,?)", (kid, cid))
+            db.x("INSERT OR REPLACE INTO kiwify_products(kiwify_id, course_id, support) VALUES (?,?,?)", (kid, cid, 1 if f.get("suporte") else 0))
     core.audit(u["id"], f"course_{acao}", f"course:{cid}")
     return back(f"/admin/cursos/{cid}", ok="Salvo.")
 
@@ -830,10 +842,18 @@ async def kiwify(request: Request):
                 uid = u["id"]
             if mapa["course_id"]:
                 core.grant(uid, "curso", mapa["course_id"], "kiwify_purchase", None, f"pedido {ev.get('order_id')}")
+            if mapa["support"]:
+                core.grant(uid, "suporte", 0, "kiwify_purchase", None, f"pedido {ev.get('order_id')}")
             result = "granted"
         elif status in ("refunded", "chargedback") and u and mapa["course_id"]:
             for e in db.q("SELECT id FROM entitlements WHERE user_id=? AND resource_type='curso' AND resource_id=? AND source='kiwify_purchase' AND status='active'", (u["id"], mapa["course_id"])):
                 core.revoke(e["id"], None, f"{status} pedido {ev.get('order_id')}")
+            if mapa["support"]:
+                for e in db.q("SELECT id FROM entitlements WHERE user_id=? AND resource_type='suporte' AND source='kiwify_purchase' AND status='active'", (u["id"],)):
+                    core.revoke(e["id"], None, f"{status} pedido {ev.get('order_id')}")
             result = "revoked"
     db.x("INSERT INTO webhook_events(event_id,kind,received_at,status) VALUES (?,?,?,?)", (eid, status, core.iso(core.now()), result))
     return {"ok": True, "result": result}
+
+
+extras.setup(app, me, page, form, back, T)

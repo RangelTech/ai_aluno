@@ -17,3 +17,9 @@ Gravação server-side (Jibri), R2 privado, TURN próprio, e-mails de lembrete, 
 
 ## Release
 Workflow `Release` (dispatch com versão) gera `image.tar.gz` + `release-manifest.json`; o deploy é só pelo `vps_rt_infra` (`service=ai-aluno`).
+
+## v0.2.0
+
+- Conquistas (medalhas, nível e pontos), certificado em PDF a partir de 80% do curso (com QR e página pública `/verificar/<código>`) e foto de perfil.
+- Suporte no WhatsApp controlado pelo admin (`/admin/suporte`): o botão e o número só existem para quem tem direito (mentoria/acompanhamento). Produto Kiwify pode liberar o suporte.
+- coturn próprio (`turn/`): STUN/TURN na VPS, com credenciais temporárias geradas pelo app (`TURN_SECRET`, `TURN_URLS`). Sem serviço de terceiros na sala.

@@ -32,9 +32,27 @@ jobs:
                "env": {"required": []}, "resources": {"memory": "1g", "cpus": "1.5"}}
           json.dump(m, open("release-manifest.json", "w"), indent=2)
           PY
+      - name: Build do servidor TURN (coturn) e manifesto
+        run: |
+          V="${{ inputs.version }}"
+          docker build -t "ai-aluno-turn:${V}" turn
+          docker save "ai-aluno-turn:${V}" | gzip -9 > turn.image.tar.gz
+          export T_IMAGE_ID="sha256:$(gunzip -c turn.image.tar.gz | tar -xO manifest.json | python3 -c "import sys,json,re;print(re.sub(r'^.*/','',json.load(sys.stdin)[0]['Config']).replace('.json',''))")"
+          export T_SHA="$(sha256sum turn.image.tar.gz | cut -d' ' -f1)"
+          python3 - <<'PY'
+          import json, os, datetime
+          v = "${{ inputs.version }}"
+          m = {"schema": 1, "service": "ai-aluno-turn", "repo": "RangelTech/ai_aluno", "commit": os.environ["GITHUB_SHA"][:7], "version": v,
+               "artifact": {"type": "docker-archive", "asset": "turn.image.tar.gz", "sha256": os.environ["T_SHA"], "image_id": os.environ["T_IMAGE_ID"], "tag": "ai-aluno-turn:" + v},
+               "built_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+               "healthcheck": {"path": "", "expect": 0, "timeout_s": 60, "port": 3478},
+               "env": {"required": ["TURN_SECRET"]}, "resources": {"memory": "128m", "cpus": "0.5"}}
+          json.dump(m, open("release-manifest.turn.json", "w"), indent=2)
+          PY
       - name: GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="${{ inputs.version }}"
-          gh release create "$V" release-manifest.json image.tar.gz --title "$V" --notes "Artefato docker-archive. Deploy: somente vps_rt_infra." --target "${GITHUB_SHA}" || gh release upload "$V" release-manifest.json image.tar.gz --clobber
+          FILES="release-manifest.json image.tar.gz release-manifest.turn.json turn.image.tar.gz"
+          gh release create "$V" $FILES --title "$V" --notes "Artefatos docker-archive (app e coturn). Deploy: somente vps_rt_infra." --target "${GITHUB_SHA}" || gh release upload "$V" $FILES --clobber

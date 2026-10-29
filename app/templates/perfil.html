@@ -4,8 +4,17 @@
 <div class="head"><div><h1>Meu perfil</h1></div></div>
 {% if troca %}<div class="msg er">Por segurança, defina uma nova senha antes de continuar.</div>{% endif %}
 <div class="grid g2">
+  <div class="card"><h3>Minha foto</h3>
+    <div class="photo-row">
+      <span class="avatar big">{% if user.photo %}<img src="/foto/{{ user.id }}?v={{ user.photo }}" alt="Minha foto">{% else %}{{ user.name[:1]|upper }}{% endif %}</span>
+      <form method="post" action="/perfil/foto" enctype="multipart/form-data" class="grow">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="field"><label for="foto">JPG, PNG ou WebP (até 8 MB)</label><input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" required></div>
+        <button class="btn sm pri" type="submit">Enviar foto</button></form></div>
+    {% if user.photo %}<form method="post" action="/perfil/foto/remover" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm bad" type="submit">Remover foto</button></form>{% endif %}</div>
   <div class="card"><h3>Dados</h3>
-    <dl class="kv" style="margin-top:14px"><dt>Nome</dt><dd>{{ user.name }}</dd><dt>E-mail</dt><dd>{{ user.email }}</dd><dt>Perfil</dt><dd>{{ {'admin':'Administrador (mestre)','mentor':'Mentor','aluno':'Aluno'}[user.role] }}</dd></dl></div>
+    <dl class="kv" style="margin-top:14px"><dt>Nome</dt><dd>{{ user.name }}</dd><dt>E-mail</dt><dd>{{ user.email }}</dd><dt>Perfil</dt><dd>{{ {'admin':'Administrador (mestre)','mentor':'Mentor','aluno':'Aluno'}[user.role] }}</dd></dl>
+    {% if user.role != 'admin' %}<p style="margin-top:14px"><a class="btn sm" href="/conquistas">Minhas conquistas e certificados</a></p>{% endif %}</div>
   <div class="card"><h3>Trocar senha</h3>
     <form method="post" action="/perfil/senha" style="margin-top:14px">
       <input type="hidden" name="csrf" value="{{ csrf }}">

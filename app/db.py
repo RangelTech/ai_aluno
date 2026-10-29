@@ -54,7 +54,22 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   event_id TEXT PRIMARY KEY, kind TEXT, received_at TEXT NOT NULL, status TEXT NOT NULL, detail TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS kiwify_products (
   kiwify_id TEXT PRIMARY KEY, course_id INTEGER, asset_id INTEGER);
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS badges_earned (
+  user_id INTEGER NOT NULL, badge TEXT NOT NULL, earned_at TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, badge));
+CREATE TABLE IF NOT EXISTS attendance (
+  mentoria_id INTEGER NOT NULL, user_id INTEGER NOT NULL, joined_at TEXT NOT NULL, PRIMARY KEY (mentoria_id, user_id));
+CREATE TABLE IF NOT EXISTS certificates (
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, user_id INTEGER NOT NULL, course_id INTEGER NOT NULL,
+  student_name TEXT NOT NULL, course_title TEXT NOT NULL, minutes INTEGER NOT NULL DEFAULT 0, pct INTEGER NOT NULL DEFAULT 0,
+  issued_at TEXT NOT NULL, UNIQUE (user_id, course_id));
 """
+
+# colunas novas em tabelas que ja existem em producao (SQLite nao tem ADD COLUMN IF NOT EXISTS)
+MIGRATIONS = [
+    ("users", "photo", "ALTER TABLE users ADD COLUMN photo TEXT NOT NULL DEFAULT ''"),
+    ("kiwify_products", "support", "ALTER TABLE kiwify_products ADD COLUMN support INTEGER NOT NULL DEFAULT 0"),
+]
 
 
 @contextmanager
@@ -71,11 +86,14 @@ def conn():
 
 def init():
     os.makedirs(DATA, exist_ok=True)
-    for sub in ("src", "media", "assets", "recordings", "tmp"):
+    for sub in ("src", "media", "assets", "recordings", "tmp", "photos"):
         os.makedirs(os.path.join(DATA, sub), exist_ok=True)
     with conn() as c:
         c.execute("PRAGMA journal_mode=WAL")
         c.executescript(SCHEMA)
+        for table, col, ddl in MIGRATIONS:
+            if col not in [r[1] for r in c.execute(f"PRAGMA table_info({table})").fetchall()]:
+                c.execute(ddl)
 
 
 def q(sql, args=()):

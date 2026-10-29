@@ -9,7 +9,7 @@
 <div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start">
   <div class="card tw"><h3 style="margin-bottom:10px">Acessos</h3><table>
     <thead><tr><th>Recurso</th><th>Origem</th><th>Status</th><th>Motivo</th><th></th></tr></thead>
-    <tbody>{% for e in ents %}<tr><td><b>{{ e.rtitle or e.resource_id }}</b><br><span class="muted small">{{ e.resource_type }}</span></td>
+    <tbody>{% for e in ents %}<tr><td><b>{{ e.rtitle or ('Suporte no WhatsApp' if e.resource_type == 'suporte' else e.resource_id) }}</b><br><span class="muted small">{{ e.resource_type }}</span></td>
       <td class="muted small">{{ e.source }}<br>{{ fmt_local(e.created_at) }}</td>
       <td><span class="pill {{ 'ok' if e.status == 'active' else 'bad' }}">{{ e.status }}</span>{% if e.ends_at %}<br><span class="muted small">até {{ fmt_local(e.ends_at) }}</span>{% endif %}</td>
       <td class="muted small">{{ e.reason }}</td>
@@ -22,7 +22,8 @@
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <div class="field"><label for="rec">Recurso</label><select id="rec" name="recurso">
           {% for c in courses %}<option value="curso:{{ c.id }}">Curso · {{ c.title }}</option>{% endfor %}
-          {% for x in assets %}<option value="ativo:{{ x.id }}">Arquivo · {{ x.title }}</option>{% endfor %}</select></div>
+          {% for x in assets %}<option value="ativo:{{ x.id }}">Arquivo · {{ x.title }}</option>{% endfor %}
+          <option value="suporte:0">Suporte · WhatsApp (mentoria/acompanhamento)</option></select></div>
         <div class="field"><label for="mot">Motivo (auditoria)</label><input id="mot" name="motivo" type="text" required placeholder="ex.: matrícula da turma de novembro"></div>
         <div class="field"><label for="ate">Válido até (opcional)</label><input id="ate" name="ate" type="datetime-local"></div>
         <button class="btn pri" type="submit">Conceder</button></form></div>

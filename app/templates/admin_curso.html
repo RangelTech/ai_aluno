@@ -44,7 +44,9 @@
     <div class="card"><h3>Venda pela Kiwify</h3>
       <p class="small muted" style="margin:8px 0">ID do produto na Kiwify que libera este curso quando o pagamento é aprovado (webhook).</p>
       <form method="post" action="/admin/cursos/{{ c.id }}" style="display:flex;gap:8px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="kiwify">
-        <input type="text" name="kiwify_id" value="{{ kiwify }}" placeholder="product_id"><button class="btn sm" type="submit">Salvar</button></form></div>
+        <input type="text" name="kiwify_id" value="{{ kiwify }}" placeholder="product_id"><button class="btn sm" type="submit">Salvar</button></form>
+      <form method="post" action="/admin/cursos/{{ c.id }}" style="margin-top:6px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="kiwify"><input type="hidden" name="kiwify_id" value="{{ kiwify }}">
+        <label class="chk"><input type="checkbox" name="suporte" {{ 'checked' if kiwify_suporte }} onchange="this.form.submit()"> Este produto inclui suporte no WhatsApp</label></form></div>
   </div>
 </div>
 {% endblock %}

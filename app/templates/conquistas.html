@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Conquistas{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Conquistas</h1><p class="muted">Cada aula, mentoria e curso concluído vira progresso. Seus certificados ficam aqui também.</p></div></div>
+
+<div class="card level">
+  <div class="lv"><span>Nível</span><b>{{ xp.nivel }}</b></div>
+  <div class="grow">
+    <p><b>{{ xp.xp }} pontos</b> <span class="muted small">· faltam {{ xp.prox - xp.xp }} para o nível {{ xp.nivel + 1 }}</span></p>
+    <div class="bar" style="margin:10px 0 8px"><i style="width:{{ xp.pct }}%"></i></div>
+    <p class="muted small">{{ st.aulas }} aula{{ '' if st.aulas == 1 else 's' }} concluída{{ '' if st.aulas == 1 else 's' }} · {{ st.mentorias }} mentoria{{ '' if st.mentorias == 1 else 's' }} · {{ st.cursos_concluidos|length }} curso{{ '' if st.cursos_concluidos|length == 1 else 's' }} concluído{{ '' if st.cursos_concluidos|length == 1 else 's' }} · maior sequência: {{ st.sequencia }} dia{{ '' if st.sequencia == 1 else 's' }}</p>
+  </div>
+</div>
+
+<section class="sec"><div class="t"><h2>Medalhas</h2><span class="muted small">{{ cat|selectattr('earned')|list|length }} de {{ cat|length }}</span></div>
+  <div class="grid g4">
+  {% for b in cat %}
+    <div class="card badge {{ 'got' if b.earned else 'lock' }} {{ 'fresh' if b.id in novas }}">
+      <span class="bi">{{ icon(b.icon, 26) }}</span>
+      <h3>{{ b.title }}</h3>
+      <p class="muted small">{{ b.desc }}</p>
+      <p class="small" style="margin-top:8px">{% if b.earned %}<span class="pill ok">Conquistada em {{ fmt_local(b.earned.earned_at, '%d/%m/%Y') }}</span>{% else %}<span class="pill">Bloqueada</span>{% endif %}</p>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+
+<section class="sec"><div class="t"><h2>Certificados</h2><span class="muted small">liberados a partir de {{ cert_min }}% do curso</span></div>
+  {% if certs or elegiveis %}
+  <div class="grid g2">
+    {% for c in certs %}
+    <div class="card cert-row"><span class="bi">{{ icon('file', 26) }}</span>
+      <div class="grow"><h3>{{ c.course_title }}</h3><p class="muted small">Emitido em {{ fmt_local(c.issued_at, '%d/%m/%Y') }} · código <code>{{ c.code }}</code></p></div>
+      <a class="btn sm pri" href="/certificado/{{ c.code }}/pdf" target="_blank" rel="noopener">Baixar PDF</a></div>
+    {% endfor %}
+    {% for c in elegiveis %}
+    <div class="card cert-row"><span class="bi">{{ icon('file', 26) }}</span>
+      <div class="grow"><h3>{{ c.title }}</h3>
+        <div class="bar" style="margin:8px 0 6px"><i style="width:{{ c.pct }}%"></i></div>
+        <p class="muted small">{{ c.pct }}% concluído{% if not c.ok %} · faltam {{ cert_min - c.pct }} pontos percentuais{% endif %}</p></div>
+      {% if c.ok %}<form method="post" action="/curso/{{ c.id }}/certificado"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm pri" type="submit">Emitir certificado</button></form>
+      {% else %}<span class="pill">Em andamento</span>{% endif %}</div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="card empty">Quando você avançar em um curso, o certificado aparece aqui.</div>{% endif %}
+</section>
+{% endblock %}

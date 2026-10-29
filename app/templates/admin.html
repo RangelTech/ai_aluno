@@ -12,6 +12,7 @@
 <div class="grid g4" style="margin-top:18px">
   <a class="btn" href="/admin/alunos">Alunos e acessos</a><a class="btn" href="/admin/cursos">Cursos e aulas</a>
   <a class="btn" href="/admin/mentorias">Agenda de mentorias</a><a class="btn" href="/admin/ativos">Arquivos e downloads</a>
+  <a class="btn" href="/admin/suporte">Suporte no WhatsApp</a>
 </div>
 <section class="sec"><div class="t"><h2>Próximas mentorias</h2><a class="small" href="/admin/mentorias">Agenda completa</a></div>
   {% if mentorias %}<div class="grid">{% for m in mentorias %}{{ mentoria_card(m, user) }}{% endfor %}</div>{% else %}<div class="card empty">Nenhuma mentoria agendada.</div>{% endif %}</section>

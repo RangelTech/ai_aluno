@@ -31,6 +31,10 @@
     <div class="card"><h3>Seu progresso</h3>
       <div class="bar" style="margin:14px 0 8px"><i style="width:{{ pct }}%"></i></div>
       <p class="muted small">{{ done }} de {{ total }} aulas concluídas · {{ pct }}%</p></div>
+    {% if user.role != 'admin' and total %}<div class="card"><h3>Certificado</h3>
+      {% if pct >= cert_min %}<p class="muted small" style="margin:8px 0 12px">Você concluiu {{ pct }}% do curso. Seu certificado com nome, data e carga horária está liberado.</p>
+        <form method="post" action="/curso/{{ c.id }}/certificado"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn pri" type="submit" style="width:100%">Emitir certificado em PDF</button></form>
+      {% else %}<p class="muted small" style="margin-top:8px">Liberado ao chegar em {{ cert_min }}% do curso. Faltam {{ cert_min - pct }} pontos percentuais.</p>{% endif %}</div>{% endif %}
     {% if assets %}<div class="card"><h3>Materiais</h3>
       <div class="lessons" style="margin-top:8px">{% for a in assets %}<a class="lesson" href="/download/{{ a.id }}"><span style="flex:1">{{ a.title }}</span><span class="small">Baixar</span></a>{% endfor %}</div></div>{% endif %}
   </aside>
