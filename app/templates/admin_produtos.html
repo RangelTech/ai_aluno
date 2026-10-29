@@ -14,7 +14,7 @@
   <div class="card tw"><h3 style="margin-bottom:10px">Produtos cadastrados</h3>
     <table><thead><tr><th>Produto</th><th>Libera</th><th></th></tr></thead><tbody>
     {% for r in rows %}<tr><td><b>{{ r.label or 'Sem nome' }}</b><br><span class="muted small mono">{{ r.kiwify_id }}</span></td>
-      <td class="small">{% if r.plan %}{{ planos[r.plan] }}<br>{% endif %}{% if r.all_courses %}Todos os cursos<br>{% elif r.ctitle %}Curso: {{ r.ctitle }}<br>{% endif %}{% if r.support %}Suporte no WhatsApp{% endif %}</td>
+      <td class="small">{% if r.plan %}{{ planos[r.plan] }}<br>{% endif %}{% if r.downsell_id %}Se abandonar: oferece o produto {{ nomes.get(r.downsell_id, r.downsell_id) }}<br>{% endif %}{% if r.all_courses %}Todos os cursos<br>{% elif r.ctitle %}Curso: {{ r.ctitle }}<br>{% endif %}{% if r.support %}Suporte no WhatsApp{% endif %}</td>
       <td style="text-align:right"><form method="post" action="/admin/produtos"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="produto" value="{{ r.kiwify_id }}"><button class="btn sm bad" name="acao" value="excluir" type="submit">Remover</button></form></td></tr>
     {% else %}<tr><td colspan="3" class="muted">Nenhum produto ainda.</td></tr>{% endfor %}</tbody></table></div>
   <div class="card"><h3>Cadastrar ou editar produto</h3>
@@ -23,6 +23,8 @@
       <div class="field"><label for="pp">ID do produto na Cakto</label><input id="pp" name="produto" type="text" required placeholder="product.id do webhook"></div>
       <div class="field"><label for="pl">Plano (conta as vagas)</label><select id="pl" name="plan"><option value="0">Nenhum</option>{% for k, v in planos.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
       <div class="field"><label for="pc">Curso liberado</label><select id="pc" name="course_id"><option value="">Nenhum</option>{% for c in cursos %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="pu">Link de pagamento (https://pay…)</label><input id="pu" name="pay_url" type="text" placeholder="https://pay.cakto.com.br/xxxxxxx"></div>
+      <div class="field"><label for="pd">Downsell: se abandonar o checkout, oferecer</label><select id="pd" name="downsell_id"><option value="">Nada</option>{% for r in rows %}<option value="{{ r.kiwify_id }}">{{ r.label or r.kiwify_id }}</option>{% endfor %}</select></div>
       <label class="chk"><input type="checkbox" name="all_courses"> Libera todos os cursos (a plataforma inteira)</label>
       <label class="chk"><input type="checkbox" name="support"> Inclui suporte no WhatsApp</label>
       <button class="btn pri" type="submit" style="margin-top:8px">Salvar produto</button></form></div>

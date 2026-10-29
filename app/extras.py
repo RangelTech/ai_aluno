@@ -479,7 +479,7 @@ def setup(app, me, page, form, back, T):
     def admin_produtos(request: Request):
         u = me(request, admin=True)
         rows = db.q("SELECT k.*, c.title AS ctitle FROM kiwify_products k LEFT JOIN courses c ON c.id=k.course_id ORDER BY k.label, k.kiwify_id")
-        return page(request, "admin_produtos.html", u, rows=rows, cursos=db.q("SELECT id,title FROM courses ORDER BY title"), planos=PLANOS,
+        return page(request, "admin_produtos.html", u, rows=rows, nomes={r["kiwify_id"]: (r["label"] or r["kiwify_id"]) for r in rows}, cursos=db.q("SELECT id,title FROM courses ORDER BY title"), planos=PLANOS,
                     cakto_ativo=bool(CAKTO_SECRET), url=PUBLIC_URL,
                     vendas=db.q("SELECT p.*, u.name, u.email FROM purchases p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 15"))
 
@@ -496,9 +496,14 @@ def setup(app, me, page, form, back, T):
             return back("/admin/produtos", ok="Produto removido.")
         cid = int(f["course_id"]) if f.get("course_id") else None
         plan = int(f.get("plan") or 0)
-        db.x("INSERT INTO kiwify_products(kiwify_id,course_id,label,plan,all_courses,support) VALUES (?,?,?,?,?,?) "
-             "ON CONFLICT(kiwify_id) DO UPDATE SET course_id=excluded.course_id,label=excluded.label,plan=excluded.plan,all_courses=excluded.all_courses,support=excluded.support",
-             (pid, cid, (f.get("label") or "").strip()[:80], plan if plan in PLANOS else 0, 1 if f.get("all_courses") else 0, 1 if f.get("support") else 0))
+        pay = (f.get("pay_url") or "").strip()[:300]
+        if pay and not pay.startswith("https://"):
+            return back("/admin/produtos", erro="O link de pagamento precisa começar com https://")
+        db.x("INSERT INTO kiwify_products(kiwify_id,course_id,label,plan,all_courses,support,pay_url,downsell_id) VALUES (?,?,?,?,?,?,?,?) "
+             "ON CONFLICT(kiwify_id) DO UPDATE SET course_id=excluded.course_id,label=excluded.label,plan=excluded.plan,all_courses=excluded.all_courses,support=excluded.support,"
+             "pay_url=excluded.pay_url,downsell_id=excluded.downsell_id",
+             (pid, cid, (f.get("label") or "").strip()[:80], plan if plan in PLANOS else 0, 1 if f.get("all_courses") else 0, 1 if f.get("support") else 0,
+              pay, (f.get("downsell_id") or "").strip()))
         core.audit(u["id"], "product_save", pid, (f.get("label") or "")[:80])
         return back("/admin/produtos", ok="Produto salvo.")
 
@@ -598,7 +603,34 @@ def notify_buyer(email, name, phone, text):
             core.audit(None, "welcome_webhook_fail", email, str(e)[:200])
 
 
+def process_abandon(d):
+    """Checkout abandonado: oferece o produto 'downsell' ligado a este (ex.: 5k -> 1k -> 294), uma vez por pessoa e produto."""
+    prod = d.get("product") or {}
+    pid = str(prod.get("id") or d.get("product_id") or d.get("productId") or "")
+    mapa = db.one("SELECT * FROM kiwify_products WHERE kiwify_id=?", (pid,)) if pid else None
+    if not mapa or not mapa["downsell_id"]:
+        return "sem_downsell"
+    nxt = db.one("SELECT * FROM kiwify_products WHERE kiwify_id=?", (mapa["downsell_id"],))
+    if not nxt or not nxt["pay_url"]:
+        return "sem_link"
+    cust = d.get("customer") or {}
+    email = str(cust.get("email") or d.get("email") or "").strip().lower()
+    if not core.EMAIL_RE.match(email):
+        return "sem_email"
+    eid = f"cakto:abandon:{email}:{pid}"
+    if db.one("SELECT 1 AS ok FROM webhook_events WHERE event_id=?", (eid,)):
+        return "duplicado"
+    nome = str(cust.get("name") or d.get("name") or email.split("@")[0])
+    notify_buyer(email, nome, str(cust.get("phone") or cust.get("whatsapp") or d.get("phone") or ""),
+                 f"Oi, {nome.split(' ')[0]}! Vi que você começou a compra de {mapa['label'] or 'uma mentoria'} e não finalizou. "
+                 f"Se quiser um jeito mais leve de começar, tem esta opção: {nxt['pay_url']}\nQualquer dúvida, é só responder por aqui.")
+    db.x("INSERT INTO webhook_events(event_id,kind,received_at,status) VALUES (?,?,?,?)", (eid, "checkout_abandonment", core.iso(core.now()), "downsell_enviado"))
+    return "downsell_enviado"
+
+
 def process_cakto(event, d):
+    if event == "checkout_abandonment":
+        return process_abandon(d)
     oid = str(d.get("id") or "").strip()
     if not oid:
         return "sem_id"

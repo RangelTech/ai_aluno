@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS certificates (
 # colunas novas em tabelas que ja existem em producao (SQLite nao tem ADD COLUMN IF NOT EXISTS)
 MIGRATIONS = [
     ("users", "photo", "ALTER TABLE users ADD COLUMN photo TEXT NOT NULL DEFAULT ''"),
+    ("kiwify_products", "pay_url", "ALTER TABLE kiwify_products ADD COLUMN pay_url TEXT NOT NULL DEFAULT ''"),
+    ("kiwify_products", "downsell_id", "ALTER TABLE kiwify_products ADD COLUMN downsell_id TEXT NOT NULL DEFAULT ''"),
     ("kiwify_products", "label", "ALTER TABLE kiwify_products ADD COLUMN label TEXT NOT NULL DEFAULT ''"),
     ("kiwify_products", "plan", "ALTER TABLE kiwify_products ADD COLUMN plan INTEGER NOT NULL DEFAULT 0"),
     ("kiwify_products", "all_courses", "ALTER TABLE kiwify_products ADD COLUMN all_courses INTEGER NOT NULL DEFAULT 0"),
