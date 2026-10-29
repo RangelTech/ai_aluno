@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Sala{% endblock %}
+{% block body %}
+<div class="card empty" style="max-width:560px;margin:50px auto">
+  <h2>{{ m.title }}</h2>
+  <p style="margin:12px 0 4px">{{ why }}</p>
+  <p class="small" data-code="{{ code }}">Horário: {{ start }}</p>
+  <p style="margin-top:22px"><a class="btn" href="/mentorias">Voltar às mentorias</a></p>
+</div>
+{% endblock %}

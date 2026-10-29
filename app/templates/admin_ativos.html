@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Arquivos{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Arquivos e downloads</h1></div></div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start">
+  <div class="card tw"><table><thead><tr><th>Arquivo</th><th>Curso</th><th>Tamanho</th></tr></thead>
+    <tbody>{% for a in rows %}<tr><td><b>{{ a.title }}</b><br><span class="muted small">{{ a.filename }} · v{{ a.version }}</span></td><td class="muted">{{ a.ctitle or 'avulso' }}</td><td class="muted">{{ '%.1f'|format(a.size / 1048576) }} MB</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Nenhum arquivo.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><h3>Publicar arquivo</h3>
+    <form method="post" action="/admin/ativos" enctype="multipart/form-data" style="margin-top:14px"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label>Título</label><input name="title" type="text" required></div>
+      <div class="field"><label>Descrição</label><input name="description" type="text"></div>
+      <div class="field"><label>Curso (opcional: quem tem o curso baixa)</label><select name="course_id"><option value="">Avulso (liberar por aluno)</option>{% for c in courses %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Arquivo</label><input name="arquivo" type="file" required></div>
+      <button class="btn pri" type="submit">Publicar</button></form></div>
+</div>
+{% endblock %}

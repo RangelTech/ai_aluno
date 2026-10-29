@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Área do aluno{% endblock %} · Lucas Rangel</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/static/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/static/apple-icon.png">
+<meta name="theme-color" content="#04070d">
+<link rel="stylesheet" href="/static/app.css?v=1">
+</head>
+<body>
+{% if user %}
+{% set p = request.url.path %}
+<header class="top"><div class="wrap">
+  <a class="brand" href="/"><img src="/static/icon.png" alt="">Lucas Rangel <small>Área do aluno</small></a>
+  <nav class="nav" aria-label="Principal">
+    <a href="/" class="{{ 'on' if p == '/' }}">Início</a>
+    <a href="/cursos" class="{{ 'on' if p.startswith('/curso') or p.startswith('/aula') }}">Meus cursos</a>
+    <a href="/mentorias" class="{{ 'on' if p.startswith('/mentorias') or p.startswith('/sala') }}">Mentorias</a>
+    <a href="/gravacoes" class="{{ 'on' if p.startswith('/gravac') }}">Gravações</a>
+    <a href="/downloads" class="{{ 'on' if p.startswith('/download') }}">Downloads</a>
+    {% if user.role == 'admin' %}<a href="/admin" class="{{ 'on' if p.startswith('/admin') }}">Administração</a>{% endif %}
+  </nav>
+  <div class="who">
+    <a href="/perfil" class="avatar" title="Meu perfil">{{ user.name[:1]|upper }}</a>
+    <span class="nm">{{ user.name.split(' ')[0] }}</span>
+    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm" type="submit">Sair</button></form>
+  </div>
+</div></header>
+<main><div class="wrap">
+  {% if ok %}<div class="msg ok" role="status">{{ ok }}</div>{% endif %}
+  {% if erro %}<div class="msg er" role="alert">{{ erro }}</div>{% endif %}
+  {% block body %}{% endblock %}
+</div></main>
+<footer class="foot"><div class="wrap">Rangel Tech · Área do aluno de Lucas Rangel. Seu acesso é pessoal e acompanhado.</div></footer>
+{% else %}
+{% block anon %}{% endblock %}
+{% endif %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

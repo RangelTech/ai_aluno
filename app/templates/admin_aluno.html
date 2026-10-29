@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ a.name }}{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin/alunos">← Alunos</a><h1 style="margin-top:6px">{{ a.name }}</h1><p class="muted">{{ a.email }} · {{ a.role }}{% if not a.active %} · <span class="pill bad">inativo</span>{% endif %}</p></div>
+  <form method="post" action="/admin/alunos/{{ a.id }}/conta" style="display:flex;gap:8px;flex-wrap:wrap">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn sm" name="acao" value="senha" type="submit">Redefinir senha</button>
+    {% if a.active %}<button class="btn sm bad" name="acao" value="desativar" type="submit">Desativar</button>{% else %}<button class="btn sm" name="acao" value="ativar" type="submit">Reativar</button>{% endif %}</form></div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start">
+  <div class="card tw"><h3 style="margin-bottom:10px">Acessos</h3><table>
+    <thead><tr><th>Recurso</th><th>Origem</th><th>Status</th><th>Motivo</th><th></th></tr></thead>
+    <tbody>{% for e in ents %}<tr><td><b>{{ e.rtitle or e.resource_id }}</b><br><span class="muted small">{{ e.resource_type }}</span></td>
+      <td class="muted small">{{ e.source }}<br>{{ fmt_local(e.created_at) }}</td>
+      <td><span class="pill {{ 'ok' if e.status == 'active' else 'bad' }}">{{ e.status }}</span>{% if e.ends_at %}<br><span class="muted small">até {{ fmt_local(e.ends_at) }}</span>{% endif %}</td>
+      <td class="muted small">{{ e.reason }}</td>
+      <td style="text-align:right">{% if e.status == 'active' %}<form method="post" action="/admin/alunos/{{ a.id }}/revogar/{{ e.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="motivo" value="revogado pelo painel"><button class="btn sm bad" type="submit">Revogar</button></form>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="5" class="muted">Nenhum acesso concedido.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="grid">
+    <div class="card"><h3>Conceder acesso</h3>
+      <form method="post" action="/admin/alunos/{{ a.id }}/acesso" style="margin-top:14px">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="field"><label for="rec">Recurso</label><select id="rec" name="recurso">
+          {% for c in courses %}<option value="curso:{{ c.id }}">Curso · {{ c.title }}</option>{% endfor %}
+          {% for x in assets %}<option value="ativo:{{ x.id }}">Arquivo · {{ x.title }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="mot">Motivo (auditoria)</label><input id="mot" name="motivo" type="text" required placeholder="ex.: matrícula da turma de novembro"></div>
+        <div class="field"><label for="ate">Válido até (opcional)</label><input id="ate" name="ate" type="datetime-local"></div>
+        <button class="btn pri" type="submit">Conceder</button></form></div>
+    <div class="card"><h3>Histórico</h3><div class="small muted" style="margin-top:10px">{% for l in logs %}<p style="margin-bottom:6px">{{ fmt_local(l.ts) }} · <code>{{ l.action }}</code> {{ l.detail }}</p>{% else %}Sem eventos.{% endfor %}</div></div>
+  </div>
+</div>
+{% endblock %}

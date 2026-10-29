@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "_macros.html" import course_card %}
+{% block title %}Meus cursos{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Meus cursos</h1><p class="muted">Tudo que está liberado para você.</p></div></div>
+{% if courses %}<div class="grid g3">{% for c in courses %}{{ course_card(c) }}{% endfor %}</div>
+{% else %}<div class="card empty">Nenhum curso liberado ainda.</div>{% endif %}
+{% endblock %}

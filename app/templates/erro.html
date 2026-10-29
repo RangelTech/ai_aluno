@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Erro {{ code }}{% endblock %}
+{% block anon %}
+<div class="login"><div class="box center">
+  <div class="logo"><img src="/static/icon.png" alt=""></div>
+  <h1>{{ code }}</h1><p class="muted" style="margin:10px 0 22px">{{ msg }}</p>
+  <a class="btn pri" href="/">Voltar ao início</a>
+</div></div>
+{% endblock %}
+{% block body %}
+<div class="empty" style="padding:90px 0"><h1>{{ code }}</h1><p style="margin:10px 0 22px">{{ msg }}</p><a class="btn pri" href="/">Voltar ao início</a></div>
+{% endblock %}

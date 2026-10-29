@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import mentoria_card %}
+{% block title %}Administração{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Administração</h1><p class="muted">Painel do mestre: alunos, cursos, arquivos e mentorias.</p></div></div>
+<div class="grid g4">
+  <div class="card stat"><b>{{ s.alunos }}</b><span>alunos ativos</span></div>
+  <div class="card stat"><b>{{ s.cursos }}</b><span>cursos</span></div>
+  <div class="card stat"><b>{{ s.aulas }}</b><span>aulas publicadas{% if s.processando %} · {{ s.processando }} processando{% endif %}</span></div>
+  <div class="card stat"><b>{{ s.ativos }}</b><span>arquivos para download</span></div>
+</div>
+<div class="grid g4" style="margin-top:18px">
+  <a class="btn" href="/admin/alunos">Alunos e acessos</a><a class="btn" href="/admin/cursos">Cursos e aulas</a>
+  <a class="btn" href="/admin/mentorias">Agenda de mentorias</a><a class="btn" href="/admin/ativos">Arquivos e downloads</a>
+</div>
+<section class="sec"><div class="t"><h2>Próximas mentorias</h2><a class="small" href="/admin/mentorias">Agenda completa</a></div>
+  {% if mentorias %}<div class="grid">{% for m in mentorias %}{{ mentoria_card(m, user) }}{% endfor %}</div>{% else %}<div class="card empty">Nenhuma mentoria agendada.</div>{% endif %}</section>
+<section class="sec"><div class="t"><h2>Atividade recente</h2><a class="small" href="/admin/auditoria">Ver auditoria</a></div>
+  <div class="card tw"><table><tbody>{% for a in recentes %}<tr><td class="muted">{{ fmt_local(a.ts) }}</td><td>{{ a.actor or 'sistema' }}</td><td><code>{{ a.action }}</code></td><td class="muted">{{ a.target }}</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

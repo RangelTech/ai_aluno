@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Gravações{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Gravações das mentorias</h1><p class="muted">Só aparecem as que foram liberadas para você.</p></div></div>
+{% if recs %}
+<div class="grid g3">{% for r in recs %}
+  <a class="card course" href="/gravacao/{{ r.id }}" style="color:inherit"><div class="cover"><b>▶</b></div>
+    <div class="body"><h3>{{ r.title }}</h3><p class="muted small">{{ r.mtitle }} · {{ fmt_local(r.starts_at, '%d/%m/%Y') }}</p></div></a>
+{% endfor %}</div>
+{% else %}<div class="card empty">Nenhuma gravação disponível para você ainda.</div>{% endif %}
+{% endblock %}

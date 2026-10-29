@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ r.title }}{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/gravacoes">← Gravações</a><h1 style="font-size:30px;margin-top:8px">{{ r.title }}</h1><p class="muted small">{{ r.mtitle }}</p></div></div>
+<div class="video" style="max-width:960px"><video controls playsinline preload="metadata" src="/gravacao/{{ r.id }}/arquivo"></video></div>
+{% endblock %}

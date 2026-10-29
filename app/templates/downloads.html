@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Downloads{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Minha biblioteca</h1><p class="muted">Materiais e arquivos a que você tem direito.</p></div></div>
+{% if assets %}
+<div class="card tw"><table>
+  <thead><tr><th>Arquivo</th><th>Curso</th><th>Tamanho</th><th></th></tr></thead>
+  <tbody>{% for a in assets %}
+    <tr><td><b>{{ a.title }}</b>{% if a.description %}<br><span class="muted small">{{ a.description }}</span>{% endif %}</td>
+      <td class="muted">{{ a.ctitle or '—' }}</td><td class="muted">{{ '%.1f'|format(a.size / 1048576) }} MB</td>
+      <td style="text-align:right"><a class="btn sm pri" href="/download/{{ a.id }}">Baixar</a></td></tr>
+  {% endfor %}</tbody></table></div>
+{% else %}<div class="card empty">Você ainda não tem arquivos liberados.</div>{% endif %}
+{% endblock %}

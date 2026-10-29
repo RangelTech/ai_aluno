@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block anon %}
+<div class="login"><div class="box">
+  <div class="logo"><img src="/static/icon.png" alt="Lucas Rangel"></div>
+  <h1 class="center" style="font-size:30px">Área do aluno</h1>
+  <p class="muted center" style="margin:8px 0 24px">Mentorias, aulas e materiais de Lucas Rangel.</p>
+  <div class="card">
+    {% if erro %}<div class="msg er" role="alert">{{ erro }}</div>{% endif %}
+    <form method="post" action="/login" autocomplete="on">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" required autofocus autocomplete="username"></div>
+      <div class="field"><label for="password">Senha</label><input id="password" name="password" type="password" required autocomplete="current-password"></div>
+      <button class="btn pri" style="width:100%;margin-top:6px" type="submit">Entrar</button>
+    </form>
+  </div>
+  <p class="muted small center" style="margin-top:18px">Ainda não tem acesso? Fale com o Lucas pelo WhatsApp.</p>
+</div></div>
+{% endblock %}

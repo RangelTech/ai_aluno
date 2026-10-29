@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Auditoria{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Auditoria</h1><p class="muted">Quem fez o quê, e quando. Não há botão para apagar registros.</p></div></div>
+<div class="card tw"><table><thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Alvo</th><th>Detalhe</th></tr></thead>
+  <tbody>{% for a in rows %}<tr><td class="muted">{{ fmt_local(a.ts, '%d/%m %H:%M:%S') }}</td><td>{{ a.actor or 'sistema' }}</td><td><code>{{ a.action }}</code></td><td class="muted">{{ a.target }}</td><td class="muted small">{{ a.detail }}</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

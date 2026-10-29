@@ -1,0 +1,30 @@
+{% macro course_card(c) %}
+<a class="card course" href="/curso/{{ c.slug }}" style="color:inherit">
+  <div class="cover"><b>{{ c.title[:2]|upper }}</b></div>
+  <div class="body">
+    <h3>{{ c.title }}</h3>
+    {% if c.subtitle %}<p class="muted small">{{ c.subtitle }}</p>{% endif %}
+    {% if c.total %}
+    <div class="bar" role="progressbar" aria-valuenow="{{ c.pct }}" aria-valuemin="0" aria-valuemax="100"><i style="width:{{ c.pct }}%"></i></div>
+    <p class="small muted">{{ c.done }} de {{ c.total }} aulas · {{ c.pct }}%</p>
+    {% else %}<p class="small muted">Em preparação</p>{% endif %}
+  </div>
+</a>
+{% endmacro %}
+
+{% macro mentoria_card(m, user) %}
+{% set meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'] %}
+<div class="card ment">
+  <div class="date"><b>{{ m.start_dt.day }}</b><span>{{ meses[m.start_dt.month - 1] }}</span></div>
+  <div class="info">
+    <h3>{{ m.title }}</h3>
+    <p class="muted small">{{ m.start_dt.strftime('%H:%M') }} · {{ m.duration_min }} min · {{ m.parts|length + 1 }} participantes (Lucas{% for p in m.parts %}, {{ p.name.split(' ')[0] }}{% endfor %})</p>
+    <p style="margin-top:8px"><span class="pill {{ 'live' if m.state in ('entrada_liberada','em_andamento') else ('bad' if m.state == 'cancelada' else '') }}">{{ STATE_LABEL[m.state] }}</span>
+      {% if m.record_policy != 'nao' %}<span class="pill warn">Gravada</span>{% endif %}</p>
+  </div>
+  <div class="acts">
+    {% if m.can_join %}<a class="btn pri" href="/sala/{{ m.id }}">Entrar na sala</a>
+    {% elif m.state == 'agendada' %}<span class="muted small">O botão aparece {{ m.open_before_min }} min antes.</span>{% endif %}
+  </div>
+</div>
+{% endmacro %}

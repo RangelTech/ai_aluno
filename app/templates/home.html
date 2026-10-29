@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import course_card, mentoria_card %}
+{% block title %}Início{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Olá, {{ user.name.split(' ')[0] }}.</h1><p class="muted">Continue de onde parou e acompanhe suas próximas mentorias.</p></div></div>
+
+<div class="hero">
+  {% if cont %}
+  <div class="card cont">
+    <div><span class="pill live">Continuar aprendendo</span>
+      <h2 style="margin-top:14px;font-size:26px">{{ cont.title }}</h2>
+      <p class="muted" style="margin-top:6px">{{ cont.ctitle }}{% if cont.seconds %} · parou em {{ fmt_dur(cont.seconds) }}{% endif %}</p></div>
+    <div><a class="btn pri" href="/aula/{{ cont.lesson_id }}">Assistir agora</a></div>
+  </div>
+  {% else %}
+  <div class="card cont"><div><span class="pill">Bem-vindo</span><h2 style="margin-top:14px;font-size:26px">Seu espaço de estudo</h2>
+    <p class="muted" style="margin-top:6px">Assim que um curso for liberado para você, ele aparece aqui.</p></div></div>
+  {% endif %}
+  <div class="card">
+    <h3>Atalhos</h3>
+    <dl class="kv" style="margin-top:14px">
+      <dt>Cursos</dt><dd><a href="/cursos">{{ courses|length }} liberado{{ '' if courses|length == 1 else 's' }}</a></dd>
+      <dt>Mentorias</dt><dd><a href="/mentorias">{{ mentorias|length }} próxima{{ '' if mentorias|length == 1 else 's' }}</a></dd>
+      <dt>Downloads</dt><dd><a href="/downloads">{{ n_assets }} arquivo{{ '' if n_assets == 1 else 's' }}</a></dd>
+    </dl>
+  </div>
+</div>
+
+<section class="sec"><div class="t"><h2>Próximas mentorias</h2><a href="/mentorias" class="small">Ver todas</a></div>
+  {% if mentorias %}<div class="grid">{% for m in mentorias %}{{ mentoria_card(m, user) }}{% endfor %}</div>
+  {% else %}<div class="card empty">Você ainda não tem mentorias agendadas. Quando o Lucas marcar uma, ela aparece aqui e no seu calendário.</div>{% endif %}
+</section>
+
+<section class="sec"><div class="t"><h2>Meus cursos</h2><a href="/cursos" class="small">Ver todos</a></div>
+  {% if courses %}<div class="grid g3">{% for c in courses[:6] %}{{ course_card(c) }}{% endfor %}</div>
+  {% else %}<div class="card empty">Nenhum curso liberado ainda.</div>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Alunos{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Alunos e acessos</h1></div></div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start">
+  <div class="card tw"><table>
+    <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cursos</th><th>Último acesso</th><th></th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td><b>{{ r.name }}</b></td><td class="muted">{{ r.email }}</td>
+      <td><span class="pill {{ 'live' if r.role == 'admin' }}">{{ r.role }}</span>{% if not r.active %} <span class="pill bad">inativo</span>{% endif %}</td>
+      <td>{{ r.ncursos }}</td><td class="muted">{{ fmt_local(r.last_login) or '—' }}</td>
+      <td style="text-align:right"><a class="btn sm" href="/admin/alunos/{{ r.id }}">Gerenciar</a></td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><h3>Novo aluno</h3>
+    <form method="post" action="/admin/alunos" style="margin-top:14px">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label for="n">Nome</label><input id="n" name="name" type="text" required></div>
+      <div class="field"><label for="e">E-mail (login)</label><input id="e" name="email" type="email" required></div>
+      <div class="field"><label for="p">Senha inicial (vazio = gerar uma)</label><input id="p" name="password" type="text" autocomplete="off"></div>
+      <div class="field"><label for="r">Perfil</label><select id="r" name="role"><option value="aluno">Aluno</option><option value="mentor">Mentor</option></select></div>
+      <label class="chk"><input type="checkbox" name="must_change" checked> Exigir troca de senha no 1º acesso</label>
+      <p class="small muted" style="margin:10px 0 6px">Liberar cursos agora:</p>
+      {% for c in cursos_all %}<label class="chk"><input type="checkbox" name="cursos" value="{{ c.id }}"> {{ c.title }}</label>{% else %}<p class="small muted">Nenhum curso criado ainda.</p>{% endfor %}
+      <button class="btn pri" style="margin-top:10px;width:100%" type="submit">Criar aluno</button></form></div>
+</div>
+{% endblock %}

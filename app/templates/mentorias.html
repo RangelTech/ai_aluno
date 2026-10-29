@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import mentoria_card %}
+{% block title %}Mentorias{% endblock %}
+{% block body %}
+<div class="head"><div><h1>Minhas mentorias</h1><p class="muted">O botão de entrada aparece só na janela liberada, e a sala é privada.</p></div></div>
+<section><h2 style="margin-bottom:16px">Próximas</h2>
+{% if prox %}<div class="grid">{% for m in prox %}{{ mentoria_card(m, user) }}{% endfor %}</div>
+{% else %}<div class="card empty">Você ainda não tem mentorias agendadas. Quando o Lucas marcar uma, ela aparece aqui.</div>{% endif %}</section>
+{% if passadas %}<section class="sec"><h2 style="margin-bottom:16px">Anteriores</h2>
+<div class="grid">{% for m in passadas %}{{ mentoria_card(m, user) }}{% endfor %}</div></section>{% endif %}
+{% endblock %}

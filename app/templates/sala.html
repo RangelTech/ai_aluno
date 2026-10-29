@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ m.title }}{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/mentorias">← Mentorias</a>
+  <h1 style="font-size:28px;margin-top:6px">{{ m.title }}</h1>
+  <p class="muted small">{{ start }} · {{ m.duration_min }} min{% if m.record_policy != 'nao' %} · esta sessão será gravada{% endif %}</p></div></div>
+
+{% if need_consent %}
+<div class="card" style="max-width:620px;margin:20px auto">
+  <h2>Antes de entrar</h2>
+  <p style="margin:12px 0">Esta mentoria será <b>gravada</b>. A gravação fica privada: só quem participou, o mentor e o administrador conseguem ver, e nunca é usada em material público ou para treinar IA sem o seu consentimento.</p>
+  <p class="muted small">Ao continuar, você registra que leu e concorda (versão do aviso: {{ 'v1-2026-10' }}). Se não concordar, avise o Lucas antes: a gravação não será iniciada sem acordo.</p>
+  <form method="post" action="/sala/{{ m.id }}/consentimento" style="margin-top:18px;display:flex;gap:10px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn pri" type="submit">Concordo e quero entrar</button><a class="btn" href="/mentorias">Voltar</a></form>
+</div>
+{% else %}
+<div id="app" data-mid="{{ m.id }}" data-ice='{{ ice }}' data-me="{{ user.id }}">
+  <div class="room">
+    <div style="display:flex;flex-direction:column;min-width:0">
+      <div class="tiles n1" id="tiles" style="flex:1"></div>
+      <div class="ctrls">
+        <button class="cbtn" id="bMic" title="Microfone" aria-label="Microfone">🎤</button>
+        <button class="cbtn" id="bCam" title="Câmera" aria-label="Câmera">📷</button>
+        <button class="cbtn" id="bScr" title="Compartilhar tela" aria-label="Compartilhar tela">🖥️</button>
+        <a class="cbtn leave" href="/mentorias" id="bLeave">Sair da sala</a>
+      </div>
+      <p class="status" id="status">Conectando…</p>
+    </div>
+    <div class="card chat">
+      <div class="log" id="log"><span class="muted small">Chat da sala. Só quem está na reunião vê.</span></div>
+      <form id="chatForm"><input type="text" id="chatIn" placeholder="Escreva uma mensagem" maxlength="500" autocomplete="off"><button class="btn pri sm" type="submit">Enviar</button></form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if not need_consent %}<script src="/static/sala.js?v=1"></script>{% endif %}{% endblock %}

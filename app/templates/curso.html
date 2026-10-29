@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ c.title }}{% endblock %}
+{% block body %}
+<div class="head"><div>
+  <a class="small" href="/cursos">← Meus cursos</a>
+  <h1 style="margin-top:8px">{{ c.title }}</h1>
+  {% if c.subtitle %}<p class="muted">{{ c.subtitle }}</p>{% endif %}
+</div>
+{% if nxt %}<a class="btn pri" href="/aula/{{ nxt.id }}">{{ 'Continuar' if done else 'Começar o curso' }}</a>{% endif %}</div>
+
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 320px;align-items:start">
+  <div class="card">
+    {% if c.description %}<p class="muted" style="margin-bottom:8px">{{ c.description }}</p>{% endif %}
+    {% for mt, ls in mods.items() %}
+      <div class="mod">{{ mt }}</div>
+      <div class="lessons">
+      {% for l in ls %}
+        {% if l.video_status == 'ready' %}
+        <a class="lesson" href="/aula/{{ l.id }}">
+          <span class="dot {{ 'done' if prog.get(l.id, {}).get('completed') }}">{{ '✓' if prog.get(l.id, {}).get('completed') else loop.index }}</span>
+          <span style="flex:1">{{ l.title }}</span><span class="muted small">{{ fmt_dur(l.duration) }}</span>
+        </a>
+        {% else %}
+        <div class="lesson" style="opacity:.55"><span class="dot">{{ loop.index }}</span><span style="flex:1">{{ l.title }}</span><span class="pill">{{ 'Processando' if l.video_status == 'processing' else 'Em breve' }}</span></div>
+        {% endif %}
+      {% endfor %}
+      </div>
+    {% else %}<div class="empty">As aulas deste curso serão publicadas em breve.</div>{% endfor %}
+  </div>
+  <aside class="grid">
+    <div class="card"><h3>Seu progresso</h3>
+      <div class="bar" style="margin:14px 0 8px"><i style="width:{{ pct }}%"></i></div>
+      <p class="muted small">{{ done }} de {{ total }} aulas concluídas · {{ pct }}%</p></div>
+    {% if assets %}<div class="card"><h3>Materiais</h3>
+      <div class="lessons" style="margin-top:8px">{% for a in assets %}<a class="lesson" href="/download/{{ a.id }}"><span style="flex:1">{{ a.title }}</span><span class="small">Baixar</span></a>{% endfor %}</div></div>{% endif %}
+  </aside>
+</div>
+{% endblock %}

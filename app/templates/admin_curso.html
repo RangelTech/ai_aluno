@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ c.title }}{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin/cursos">← Cursos</a><h1 style="margin-top:6px">{{ c.title }}</h1>
+  <p class="muted"><span class="pill {{ 'ok' if c.published else 'warn' }}">{{ 'Publicado' if c.published else 'Rascunho' }}</span> · <a href="/curso/{{ c.slug }}">ver como aluno</a></p></div></div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start">
+  <div class="grid">
+    {% for m in mods %}
+    <div class="card"><h3>{{ m.title }}</h3>
+      <div class="lessons" style="margin-top:10px">
+      {% for l in m.lessons %}
+        <div class="lesson" style="flex-wrap:wrap">
+          <span class="dot">{{ loop.index }}</span><span style="flex:1;min-width:140px"><b>{{ l.title }}</b></span>
+          <span class="pill {{ 'ok' if l.video_status == 'ready' else ('warn' if l.video_status == 'processing' else ('bad' if l.video_status == 'error' else '')) }}">
+            {{ {'none':'Sem vídeo','processing':'Processando','ready':'Pronto · ' ~ fmt_dur(l.duration),'error':'Erro'}[l.video_status] }}</span>
+          <form method="post" action="/admin/aulas/{{ l.id }}/video" enctype="multipart/form-data" style="display:flex;gap:8px">
+            <input type="hidden" name="csrf" value="{{ csrf }}"><input type="file" name="video" accept="video/*" required style="max-width:220px;padding:7px">
+            <button class="btn sm" type="submit">Enviar vídeo</button></form>
+          <form method="post" action="/admin/aulas/{{ l.id }}/excluir"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm bad" type="submit">Excluir</button></form>
+          {% if l.error %}<p class="small" style="color:var(--bad);width:100%">{{ l.error }}</p>{% endif %}
+        </div>
+      {% else %}<p class="muted small">Sem aulas.</p>{% endfor %}</div>
+      <form method="post" action="/admin/cursos/{{ c.id }}" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="aula"><input type="hidden" name="module_id" value="{{ m.id }}">
+        <input type="text" name="title" placeholder="Título da nova aula" required style="flex:1;min-width:180px"><button class="btn sm pri" type="submit">Adicionar aula</button></form>
+    </div>
+    {% endfor %}
+    <div class="card"><form method="post" action="/admin/cursos/{{ c.id }}" style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="modulo">
+      <input type="text" name="title" placeholder="Título do novo módulo" required style="flex:1;min-width:200px"><button class="btn pri" type="submit">Adicionar módulo</button></form></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>Dados do curso</h3>
+      <form method="post" action="/admin/cursos/{{ c.id }}" style="margin-top:14px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="dados">
+        <div class="field"><label>Título</label><input name="title" type="text" value="{{ c.title }}" required></div>
+        <div class="field"><label>Subtítulo</label><input name="subtitle" type="text" value="{{ c.subtitle }}"></div>
+        <div class="field"><label>Descrição</label><textarea name="description">{{ c.description }}</textarea></div>
+        <label class="chk"><input type="checkbox" name="published" {{ 'checked' if c.published }}> Publicado (visível para alunos matriculados)</label>
+        <button class="btn pri" type="submit" style="margin-top:8px">Salvar</button></form></div>
+    <div class="card"><h3>Alunos matriculados ({{ alunos|length }})</h3>
+      <p class="small muted" style="margin:8px 0">{% for a in alunos %}{{ a.name }}{{ ', ' if not loop.last }}{% else %}Ninguém ainda.{% endfor %}</p>
+      <form method="post" action="/admin/cursos/{{ c.id }}" style="display:flex;gap:8px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="matricular"><input type="hidden" name="motivo" value="matrícula pelo painel do curso">
+        <select name="user_id" required>{% for t in todos %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select><button class="btn sm pri" type="submit">Matricular</button></form></div>
+    <div class="card"><h3>Venda pela Kiwify</h3>
+      <p class="small muted" style="margin:8px 0">ID do produto na Kiwify que libera este curso quando o pagamento é aprovado (webhook).</p>
+      <form method="post" action="/admin/cursos/{{ c.id }}" style="display:flex;gap:8px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="kiwify">
+        <input type="text" name="kiwify_id" value="{{ kiwify }}" placeholder="product_id"><button class="btn sm" type="submit">Salvar</button></form></div>
+  </div>
+</div>
+{% endblock %}
