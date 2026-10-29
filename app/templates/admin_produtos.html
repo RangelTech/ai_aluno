@@ -2,32 +2,44 @@
 {% block title %}Produtos e vendas{% endblock %}
 {% block body %}
 <div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Produtos e vendas</h1>
-  <p class="muted">Cada produto do checkout (Cakto) é ligado ao que ele libera: curso, todos os cursos, suporte no WhatsApp e o plano (para contar as vagas depois). Pagou, a conta é criada e o acesso liberado. Reembolso ou chargeback revogam.</p></div></div>
+  <p class="muted">Aqui ficam o nome, o preço e o link de pagamento de cada produto. Esses dados ficam no banco e são a fonte para a IA do WhatsApp (via API abaixo). Cada produto também é ligado ao que libera: cursos, suporte no WhatsApp e o plano. Pagou, a conta é criada e o acesso liberado. Reembolso ou chargeback revogam.</p></div></div>
 
-<div class="card" style="margin-bottom:18px"><h3>Webhook</h3>
-  <p class="muted small" style="margin:8px 0">Na Cakto, em Integrações → Webhooks, aponte para a URL abaixo e marque os eventos <code>purchase_approved</code>, <code>refund</code> e <code>chargeback</code>. O segredo que você definir lá vai na variável <code>CAKTO_SECRET</code> do servidor.</p>
-  <code class="cred">{{ url }}/webhooks/cakto</code>
-  <p style="margin-top:8px"><span class="pill {{ 'ok' if cakto_ativo else 'warn' }}">{{ 'Webhook ativo' if cakto_ativo else 'Desativado: falta o segredo no servidor' }}</span></p>
-  <p class="muted small" style="margin-top:10px">Para o comprador entrar: no e-mail ou na página de obrigado do produto, mande o link <code>{{ url }}/primeiro-acesso</code>. Ele informa o e-mail da compra e o código do pedido e cria a senha.</p></div>
+<div class="grid g2" style="margin-bottom:18px">
+  <div class="card"><h3>Webhook da Cakto</h3>
+    <p class="muted small" style="margin:8px 0">Na Cakto: Integrações → Webhooks, eventos <code>purchase_approved</code>, <code>refund</code>, <code>chargeback</code> e <code>checkout_abandonment</code>. O segredo fica em <code>CAKTO_SECRET</code> no servidor.</p>
+    <code class="cred">{{ url }}/webhooks/cakto</code>
+    <p style="margin-top:8px"><span class="pill {{ 'ok' if cakto_ativo else 'warn' }}">{{ 'Webhook ativo' if cakto_ativo else 'Desativado: falta o segredo no servidor' }}</span></p>
+    <p class="muted small" style="margin-top:10px">Comprador novo recebe um link de uso único para criar a senha; o fallback é <code>{{ url }}/primeiro-acesso</code> (e-mail da compra + código do pedido).</p></div>
+  <div class="card"><h3>API para a IA do WhatsApp</h3>
+    <p class="muted small" style="margin:8px 0">Lista tudo que está cadastrado aqui (nome, preço, link, plano, downsell). Autenticação: cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>. O token fica em <code>PRODUCTS_API_TOKEN</code> no servidor e no cofre.</p>
+    <code class="cred">{{ url }}/api/produtos</code>
+    <p style="margin-top:8px"><span class="pill {{ 'ok' if api_ativa else 'warn' }}">{{ 'API ativa' if api_ativa else 'Desativada: falta o token no servidor' }}</span></p></div>
+</div>
 
-<div class="grid" style="grid-template-columns:minmax(0,1fr) 380px;align-items:start">
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 400px;align-items:start">
   <div class="card tw"><h3 style="margin-bottom:10px">Produtos cadastrados</h3>
-    <table><thead><tr><th>Produto</th><th>Libera</th><th></th></tr></thead><tbody>
-    {% for r in rows %}<tr><td><b>{{ r.label or 'Sem nome' }}</b><br><span class="muted small mono">{{ r.kiwify_id }}</span></td>
-      <td class="small">{% if r.plan %}{{ planos[r.plan] }}<br>{% endif %}{% if r.downsell_id %}Se abandonar: oferece o produto {{ nomes.get(r.downsell_id, r.downsell_id) }}<br>{% endif %}{% if r.all_courses %}Todos os cursos<br>{% elif r.ctitle %}Curso: {{ r.ctitle }}<br>{% endif %}{% if r.support %}Suporte no WhatsApp{% endif %}</td>
-      <td style="text-align:right"><form method="post" action="/admin/produtos"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="produto" value="{{ r.kiwify_id }}"><button class="btn sm bad" name="acao" value="excluir" type="submit">Remover</button></form></td></tr>
-    {% else %}<tr><td colspan="3" class="muted">Nenhum produto ainda.</td></tr>{% endfor %}</tbody></table></div>
-  <div class="card"><h3>Cadastrar ou editar produto</h3>
-    <form method="post" action="/admin/produtos" style="margin-top:14px"><input type="hidden" name="csrf" value="{{ csrf }}">
-      <div class="field"><label for="pn">Nome (só para você)</label><input id="pn" name="label" type="text" placeholder="Mentoria com acompanhamento"></div>
-      <div class="field"><label for="pp">ID do produto na Cakto</label><input id="pp" name="produto" type="text" required placeholder="product.id do webhook"></div>
-      <div class="field"><label for="pl">Plano (conta as vagas)</label><select id="pl" name="plan"><option value="0">Nenhum</option>{% for k, v in planos.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
-      <div class="field"><label for="pc">Curso liberado</label><select id="pc" name="course_id"><option value="">Nenhum</option>{% for c in cursos %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}</select></div>
-      <div class="field"><label for="pu">Link de pagamento (https://pay…)</label><input id="pu" name="pay_url" type="text" placeholder="https://pay.cakto.com.br/xxxxxxx"></div>
-      <div class="field"><label for="pd">Downsell: se abandonar o checkout, oferecer</label><select id="pd" name="downsell_id"><option value="">Nada</option>{% for r in rows %}<option value="{{ r.kiwify_id }}">{{ r.label or r.kiwify_id }}</option>{% endfor %}</select></div>
-      <label class="chk"><input type="checkbox" name="all_courses"> Libera todos os cursos (a plataforma inteira)</label>
-      <label class="chk"><input type="checkbox" name="support"> Inclui suporte no WhatsApp</label>
-      <button class="btn pri" type="submit" style="margin-top:8px">Salvar produto</button></form></div>
+    <table><thead><tr><th>Produto</th><th>Preço e link</th><th>Libera</th><th></th></tr></thead><tbody>
+    {% for r in rows %}<tr><td><b>{{ r.label or 'Sem nome' }}</b>{% if r.hidden %} <span class="pill warn">oculto</span>{% endif %}<br><span class="muted small mono">{{ r.kiwify_id[:13] }}…</span></td>
+      <td class="small"><b>{{ brl(r.price) }}</b><br>{% if r.pay_url %}<a href="{{ r.pay_url }}" target="_blank" rel="noopener">{{ r.pay_url.replace('https://', '') }}</a>{% else %}<span class="muted">sem link</span>{% endif %}</td>
+      <td class="small">{% if r.plan %}{{ planos[r.plan] }}<br>{% endif %}{% if r.downsell_id %}Se abandonar: oferece {{ nomes.get(r.downsell_id, r.downsell_id) }}<br>{% endif %}{% if r.all_courses %}Todos os cursos<br>{% elif r.ctitle %}Curso: {{ r.ctitle }}<br>{% endif %}{% if r.support %}Suporte no WhatsApp{% endif %}</td>
+      <td style="text-align:right;white-space:nowrap"><a class="btn sm" href="/admin/produtos?editar={{ r.kiwify_id }}#form">Editar</a>
+        <form method="post" action="/admin/produtos" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="produto" value="{{ r.kiwify_id }}"><button class="btn sm bad" name="acao" value="excluir" type="submit">Remover</button></form></td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Nenhum produto ainda.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card" id="form"><h3>{{ 'Editar produto' if ed else 'Cadastrar produto' }}</h3>
+    <form method="post" action="/admin/produtos" style="margin-top:14px" id="prodform"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label for="pn">Nome</label><input id="pn" name="label" type="text" value="{{ ed.label if ed else '' }}" placeholder="Mentoria com acompanhamento"></div>
+      <div class="field"><label for="pr">Preço (R$)</label><input id="pr" name="price" type="text" inputmode="decimal" value="{{ ('%.2f' % ed.price).replace('.', ',') if ed else '' }}" placeholder="1000,00"></div>
+      <div class="field"><label for="pe">Descrição (a IA usa para explicar o produto)</label><textarea id="pe" name="description">{{ ed.description if ed else '' }}</textarea></div>
+      <div class="field"><label for="pu">Link de pagamento</label><input id="pu" name="pay_url" type="text" value="{{ ed.pay_url if ed else '' }}" placeholder="https://pay.cakto.com.br/xxxxxxx"></div>
+      <div class="field"><label for="pp">ID do produto na Cakto</label><input id="pp" name="produto" type="text" required value="{{ ed.kiwify_id if ed else '' }}" placeholder="o product.id (UUID) que a Cakto envia"></div>
+      <div class="field"><label for="pl">Plano (conta as vagas)</label><select id="pl" name="plan"><option value="0">Nenhum</option>{% for k, v in planos.items() %}<option value="{{ k }}" {{ 'selected' if ed and ed.plan == k }}>{{ v }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="pd">Downsell: se abandonar o checkout, oferecer</label><select id="pd" name="downsell_id"><option value="">Nada</option>{% for r in rows %}{% if not ed or r.kiwify_id != ed.kiwify_id %}<option value="{{ r.kiwify_id }}" {{ 'selected' if ed and ed.downsell_id == r.kiwify_id }}>{{ r.label or r.kiwify_id }}</option>{% endif %}{% endfor %}</select></div>
+      <div class="field"><label for="pc">Curso liberado</label><select id="pc" name="course_id"><option value="">Nenhum</option>{% for c in cursos %}<option value="{{ c.id }}" {{ 'selected' if ed and ed.course_id == c.id }}>{{ c.title }}</option>{% endfor %}</select></div>
+      <label class="chk"><input type="checkbox" name="all_courses" {{ 'checked' if ed and ed.all_courses }}> Libera todos os cursos (a plataforma inteira)</label>
+      <label class="chk"><input type="checkbox" name="support" {{ 'checked' if ed and ed.support }}> Inclui suporte no WhatsApp</label>
+      <label class="chk"><input type="checkbox" name="hidden" {{ 'checked' if ed and ed.hidden }}> Oculto (não aparece no site; só oferta/downsell)</label>
+      <button class="btn pri" type="submit" style="margin-top:8px">Salvar produto</button>
+      {% if ed %}<a class="btn" href="/admin/produtos" style="margin-top:8px">Cancelar edição</a>{% endif %}</form></div>
 </div>
 
 <section class="sec"><div class="t"><h2>Últimas vendas recebidas</h2></div>

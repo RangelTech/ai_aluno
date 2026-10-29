@@ -18,6 +18,40 @@ from . import core, db
 CERT_MIN_PCT = 80
 CAKTO_SECRET = os.environ.get("CAKTO_SECRET", "")
 PLANOS = {1: "Mentoria com acompanhamento", 2: "Mentoria individual"}
+PRODUCTS_API_TOKEN = os.environ.get("PRODUCTS_API_TOKEN", "")
+
+
+def parse_preco(s):
+    """Aceita 'R$ 1.000,00', '1000,50' ou '1000.50'."""
+    s = (s or "").lower().replace("r$", "").replace(" ", "").strip()
+    if not s:
+        return 0.0
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    v = float(s)
+    if v < 0 or v > 1_000_000:
+        raise ValueError("preco")
+    return round(v, 2)
+
+
+def brl(v):
+    return "R$ " + f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def catalogo():
+    """Catalogo de produtos (fonte unica: banco). Usado pela API da IA do WhatsApp."""
+    rows = db.q("SELECT * FROM kiwify_products ORDER BY price DESC, label")
+    by = {r["kiwify_id"]: r for r in rows}
+    out = []
+    for r in rows:
+        d = by.get(r["downsell_id"]) if r["downsell_id"] else None
+        out.append({
+            "id": r["kiwify_id"], "nome": r["label"], "descricao": r["description"], "preco": r["price"], "preco_texto": brl(r["price"]),
+            "link_pagamento": r["pay_url"], "oculto": bool(r["hidden"]),
+            "plano": PLANOS.get(r["plan"]), "inclui": {"todos_os_cursos": bool(r["all_courses"]), "suporte_whatsapp": bool(r["support"])},
+            "downsell": ({"id": d["kiwify_id"], "nome": d["label"], "preco": d["price"], "preco_texto": brl(d["price"]), "link_pagamento": d["pay_url"]} if d else None),
+        })
+    return out
 PUBLIC_URL = os.environ.get("PUBLIC_URL", "https://user.rangeltech.net").rstrip("/")
 DEFAULT_WA = os.environ.get("SUPPORT_WHATSAPP", "5562985613482")
 DEFAULT_WA_MSG = "Oi, Lucas! Aqui é {nome}, da área do aluno."
@@ -475,11 +509,34 @@ def setup(app, me, page, form, back, T):
                 results.append(process_cakto(event, d))
         return {"ok": True, "results": results}
 
+    def _bearer_ok(request):
+        if not PRODUCTS_API_TOKEN:
+            raise HTTPException(503, "api_desativada")
+        got = request.headers.get("authorization", "")
+        if not got.lower().startswith("bearer ") or not hmac.compare_digest(got[7:].strip(), PRODUCTS_API_TOKEN):
+            raise HTTPException(401, "token_invalido")
+
+    @app.get("/api/produtos")
+    def api_produtos(request: Request):
+        _bearer_ok(request)
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"produtos": catalogo(), "atualizado_em": core.iso(core.now())})
+
+    @app.get("/api/produtos/{pid}")
+    def api_produto(request: Request, pid: str):
+        _bearer_ok(request)
+        from fastapi.responses import JSONResponse
+        p = next((x for x in catalogo() if x["id"] == pid), None)
+        if not p:
+            raise HTTPException(404, "produto_nao_encontrado")
+        return JSONResponse(p)
+
     @app.get("/admin/produtos", response_class=HTMLResponse)
     def admin_produtos(request: Request):
         u = me(request, admin=True)
         rows = db.q("SELECT k.*, c.title AS ctitle FROM kiwify_products k LEFT JOIN courses c ON c.id=k.course_id ORDER BY k.label, k.kiwify_id")
-        return page(request, "admin_produtos.html", u, rows=rows, nomes={r["kiwify_id"]: (r["label"] or r["kiwify_id"]) for r in rows}, cursos=db.q("SELECT id,title FROM courses ORDER BY title"), planos=PLANOS,
+        ed = next((r for r in rows if r["kiwify_id"] == request.query_params.get("editar")), None)
+        return page(request, "admin_produtos.html", u, rows=rows, ed=ed, api_ativa=bool(PRODUCTS_API_TOKEN), brl=brl, nomes={r["kiwify_id"]: (r["label"] or r["kiwify_id"]) for r in rows}, cursos=db.q("SELECT id,title FROM courses ORDER BY title"), planos=PLANOS,
                     cakto_ativo=bool(CAKTO_SECRET), url=PUBLIC_URL,
                     vendas=db.q("SELECT p.*, u.name, u.email FROM purchases p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 15"))
 
@@ -496,14 +553,18 @@ def setup(app, me, page, form, back, T):
             return back("/admin/produtos", ok="Produto removido.")
         cid = int(f["course_id"]) if f.get("course_id") else None
         plan = int(f.get("plan") or 0)
+        try:
+            preco = parse_preco(f.get("price"))
+        except ValueError:
+            return back("/admin/produtos", erro="Preço inválido. Use algo como 1000,00.")
         pay = (f.get("pay_url") or "").strip()[:300]
         if pay and not pay.startswith("https://"):
             return back("/admin/produtos", erro="O link de pagamento precisa começar com https://")
-        db.x("INSERT INTO kiwify_products(kiwify_id,course_id,label,plan,all_courses,support,pay_url,downsell_id) VALUES (?,?,?,?,?,?,?,?) "
+        db.x("INSERT INTO kiwify_products(kiwify_id,course_id,label,plan,all_courses,support,pay_url,downsell_id,price,description,hidden) VALUES (?,?,?,?,?,?,?,?,?,?,?) "
              "ON CONFLICT(kiwify_id) DO UPDATE SET course_id=excluded.course_id,label=excluded.label,plan=excluded.plan,all_courses=excluded.all_courses,support=excluded.support,"
-             "pay_url=excluded.pay_url,downsell_id=excluded.downsell_id",
+             "pay_url=excluded.pay_url,downsell_id=excluded.downsell_id,price=excluded.price,description=excluded.description,hidden=excluded.hidden",
              (pid, cid, (f.get("label") or "").strip()[:80], plan if plan in PLANOS else 0, 1 if f.get("all_courses") else 0, 1 if f.get("support") else 0,
-              pay, (f.get("downsell_id") or "").strip()))
+              pay, (f.get("downsell_id") or "").strip(), preco, (f.get("description") or "").strip()[:1500], 1 if f.get("hidden") else 0))
         core.audit(u["id"], "product_save", pid, (f.get("label") or "")[:80])
         return back("/admin/produtos", ok="Produto salvo.")
 
