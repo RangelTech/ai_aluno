@@ -9,7 +9,7 @@
 <div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start">
   <div class="card tw"><h3 style="margin-bottom:10px">Acessos</h3><table>
     <thead><tr><th>Recurso</th><th>Origem</th><th>Status</th><th>Motivo</th><th></th></tr></thead>
-    <tbody>{% for e in ents %}<tr><td><b>{{ e.rtitle or ('Suporte no WhatsApp' if e.resource_type == 'suporte' else e.resource_id) }}</b><br><span class="muted small">{{ e.resource_type }}</span></td>
+    <tbody>{% for e in ents %}<tr><td><b>{{ e.rtitle or ('Suporte no WhatsApp' if e.resource_type == 'suporte' else ('Todos os cursos' if e.resource_type == 'curso' and e.resource_id == 0 else ({1:'Plano: Mentoria com acompanhamento',2:'Plano: Mentoria individual'}[e.resource_id] if e.resource_type == 'plano' else e.resource_id))) }}</b><br><span class="muted small">{{ e.resource_type }}</span></td>
       <td class="muted small">{{ e.source }}<br>{{ fmt_local(e.created_at) }}</td>
       <td><span class="pill {{ 'ok' if e.status == 'active' else 'bad' }}">{{ e.status }}</span>{% if e.ends_at %}<br><span class="muted small">até {{ fmt_local(e.ends_at) }}</span>{% endif %}</td>
       <td class="muted small">{{ e.reason }}</td>

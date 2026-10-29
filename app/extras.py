@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import io
+import json
 import os
 import secrets
 import time
@@ -15,6 +16,8 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Resp
 from . import core, db
 
 CERT_MIN_PCT = 80
+CAKTO_SECRET = os.environ.get("CAKTO_SECRET", "")
+PLANOS = {1: "Mentoria com acompanhamento", 2: "Mentoria individual"}
 PUBLIC_URL = os.environ.get("PUBLIC_URL", "https://user.rangeltech.net").rstrip("/")
 DEFAULT_WA = os.environ.get("SUPPORT_WHATSAPP", "5562985613482")
 DEFAULT_WA_MSG = "Oi, Lucas! Aqui é {nome}, da área do aluno."
@@ -442,3 +445,206 @@ def setup(app, me, page, form, back, T):
             for e in db.q("SELECT id FROM entitlements WHERE user_id=? AND resource_type='suporte' AND status='active'", (uid,)):
                 core.revoke(e["id"], u["id"], "suporte removido pelo painel")
         return back("/admin/suporte", ok="Atualizado.")
+
+    # ================================================================ vendas (Cakto): webhook, produtos e primeiro acesso
+    @app.post("/webhooks/cakto")
+    async def webhook_cakto(request: Request):
+        """Libera ou revoga acessos a partir dos eventos da Cakto. Autentica pelo `secret` do corpo (comparacao em tempo constante);
+        se vierem os cabecalhos X-Cakto-Signature/Timestamp, a assinatura HMAC tambem e conferida e um desvio fica na auditoria."""
+        if not CAKTO_SECRET:
+            raise HTTPException(503, "webhook_disabled")
+        raw = await request.body()
+        try:
+            ev = json.loads(raw or b"{}")
+        except ValueError:
+            raise HTTPException(400, "json_invalido")
+        if not isinstance(ev, dict) or not hmac.compare_digest(str(ev.get("secret", "")), CAKTO_SECRET):
+            core.audit(None, "webhook_invalid", "cakto")
+            raise HTTPException(401, "invalid_secret")
+        sig, ts = request.headers.get("x-cakto-signature", ""), request.headers.get("x-cakto-timestamp", "")
+        if sig:
+            want = hmac.new(CAKTO_SECRET.encode(), ts.encode() + b"." + raw, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(sig.replace("v1=", ""), want):
+                core.audit(None, "webhook_sig_mismatch", "cakto")
+        event = str(ev.get("event", ""))
+        data = ev.get("data")
+        items = data if isinstance(data, list) else [data]
+        results = []
+        for d in items:
+            if isinstance(d, dict):
+                results.append(process_cakto(event, d))
+        return {"ok": True, "results": results}
+
+    @app.get("/admin/produtos", response_class=HTMLResponse)
+    def admin_produtos(request: Request):
+        u = me(request, admin=True)
+        rows = db.q("SELECT k.*, c.title AS ctitle FROM kiwify_products k LEFT JOIN courses c ON c.id=k.course_id ORDER BY k.label, k.kiwify_id")
+        return page(request, "admin_produtos.html", u, rows=rows, cursos=db.q("SELECT id,title FROM courses ORDER BY title"), planos=PLANOS,
+                    cakto_ativo=bool(CAKTO_SECRET), url=PUBLIC_URL,
+                    vendas=db.q("SELECT p.*, u.name, u.email FROM purchases p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 15"))
+
+    @app.post("/admin/produtos")
+    async def admin_produtos_salvar(request: Request):
+        u = me(request, admin=True)
+        f = await form(request, u)
+        pid = (f.get("produto") or "").strip()
+        if not pid:
+            return back("/admin/produtos", erro="Informe o ID do produto (o campo id que a Cakto envia).")
+        if f.get("acao") == "excluir":
+            db.x("DELETE FROM kiwify_products WHERE kiwify_id=?", (pid,))
+            core.audit(u["id"], "product_delete", pid)
+            return back("/admin/produtos", ok="Produto removido.")
+        cid = int(f["course_id"]) if f.get("course_id") else None
+        plan = int(f.get("plan") or 0)
+        db.x("INSERT INTO kiwify_products(kiwify_id,course_id,label,plan,all_courses,support) VALUES (?,?,?,?,?,?) "
+             "ON CONFLICT(kiwify_id) DO UPDATE SET course_id=excluded.course_id,label=excluded.label,plan=excluded.plan,all_courses=excluded.all_courses,support=excluded.support",
+             (pid, cid, (f.get("label") or "").strip()[:80], plan if plan in PLANOS else 0, 1 if f.get("all_courses") else 0, 1 if f.get("support") else 0))
+        core.audit(u["id"], "product_save", pid, (f.get("label") or "")[:80])
+        return back("/admin/produtos", ok="Produto salvo.")
+
+    @app.get("/primeiro-acesso", response_class=HTMLResponse)
+    def primeiro_acesso(request: Request):
+        t = request.query_params.get("t", "")
+        tu = token_user(t)
+        return T.TemplateResponse(request, "primeiro_acesso.html", {"user": None, "csrf": "", "ok": None, "erro": ("Esse link expirou ou já foi usado. Use o e-mail e o código do pedido." if t and not tu else None),
+                                                                    "email": "", "token": t if tu else "", "tname": tu["name"].split(" ")[0] if tu else ""})
+
+    @app.post("/primeiro-acesso")
+    async def primeiro_acesso_post(request: Request):
+        f = await request.form()
+        email = (f.get("email") or "").strip().lower()
+        codigo = (f.get("codigo") or "").strip()
+        nova, conf = f.get("senha") or "", f.get("confirma") or ""
+        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+        key = f"pa|{ip}|{email or (f.get('t') or '')[:12]}"
+        tokv = (f.get("t") or "").strip()
+        tu = token_user(tokv) if tokv else None
+
+        def erro(msg, status=400):
+            return T.TemplateResponse(request, "primeiro_acesso.html", {"user": None, "csrf": "", "ok": None, "erro": msg, "email": email,
+                                                                        "token": tokv if tu else "", "tname": tu["name"].split(" ")[0] if tu else ""}, status_code=status)
+
+        if core.login_blocked(key):
+            return erro("Muitas tentativas. Aguarde alguns minutos.", 429)
+        if len(nova) < 10 or nova != conf:
+            return erro("A senha precisa ter 10 ou mais caracteres e ser igual à confirmação.")
+        usr = tu or db.one("SELECT * FROM users WHERE email=? AND active=1", (email,))
+        compra = None
+        if tu:
+            compra = True
+            db.x("UPDATE access_tokens SET used_at=? WHERE token_hash=?", (core.iso(core.now()), hashlib.sha256(tokv.encode()).hexdigest()))
+        elif usr and not usr["last_login"] and codigo:
+            c = codigo.lower()
+            compra = db.one("SELECT * FROM purchases WHERE user_id=? AND (lower(ref)=? OR lower(order_id)=? OR lower(substr(order_id,1,8))=?)", (usr["id"], c, c, c))
+        if not compra:
+            core.login_fail(key)
+            core.audit(None, "first_access_fail", email)
+            return erro("Não encontrei essa compra. Confira o e-mail usado na compra e o código do pedido, ou fale com o Lucas.", 400)
+        core.login_ok(key)
+        db.x("UPDATE users SET pw_hash=?, must_change=0 WHERE id=?", (core.hash_pw(nova), usr["id"]))
+        tok = core.new_session(usr["id"])
+        core.audit(usr["id"], "first_access", email)
+        r = RedirectResponse("/", 303)
+        r.set_cookie("sid", tok, max_age=core.SESSION_DAYS * 86400, httponly=True, secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https", samesite="lax", path="/")
+        return r
+
+
+def make_access_token(uid):
+    """Link de primeiro acesso de uso unico (7 dias). So o hash fica no banco."""
+    tok = secrets.token_urlsafe(24)
+    db.x("INSERT INTO access_tokens(token_hash,user_id,expires_at) VALUES (?,?,?)",
+         (hashlib.sha256(tok.encode()).hexdigest(), uid, core.iso(core.now() + timedelta(days=7))))
+    return tok
+
+
+def token_user(tok):
+    if not tok:
+        return None
+    r = db.one("SELECT * FROM access_tokens WHERE token_hash=?", (hashlib.sha256(tok.encode()).hexdigest(),))
+    if not r or r["used_at"] or core.parse(r["expires_at"]) < core.now():
+        return None
+    return db.one("SELECT * FROM users WHERE id=? AND active=1", (r["user_id"],))
+
+
+def notify_buyer(email, name, phone, text):
+    """Entrega a mensagem de boas-vindas por e-mail (SMTP) e/ou por um webhook de saida (ex.: o fluxo de WhatsApp). Falha nunca derruba a venda."""
+    host = os.environ.get("SMTP_HOST", "")
+    if host:
+        try:
+            import smtplib
+            from email.message import EmailMessage
+            m = EmailMessage()
+            m["Subject"] = "Seu acesso à área do aluno"
+            m["From"] = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "nao-responda@rangeltech.net"))
+            m["To"] = email
+            m.set_content(text)
+            with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", "587")), timeout=20) as s:
+                s.starttls()
+                if os.environ.get("SMTP_USER"):
+                    s.login(os.environ["SMTP_USER"], os.environ.get("SMTP_PASSWORD", ""))
+                s.send_message(m)
+            core.audit(None, "welcome_email_sent", email)
+        except Exception as e:  # noqa: BLE001
+            core.audit(None, "welcome_email_fail", email, str(e)[:200])
+    url = os.environ.get("NOTIFY_WEBHOOK_URL", "")
+    if url:
+        try:
+            import urllib.request
+            req = urllib.request.Request(url, data=json.dumps({"event": "welcome", "email": email, "name": name, "phone": phone, "text": text}).encode(),
+                                         headers={"Content-Type": "application/json", "X-Notify-Token": os.environ.get("NOTIFY_WEBHOOK_TOKEN", "")}, method="POST")
+            urllib.request.urlopen(req, timeout=15).read()
+            core.audit(None, "welcome_webhook_sent", email)
+        except Exception as e:  # noqa: BLE001
+            core.audit(None, "welcome_webhook_fail", email, str(e)[:200])
+
+
+def process_cakto(event, d):
+    oid = str(d.get("id") or "").strip()
+    if not oid:
+        return "sem_id"
+    eid = f"cakto:{oid}:{event}"
+    if db.one("SELECT 1 AS ok FROM webhook_events WHERE event_id=?", (eid,)):
+        return "duplicado"
+    prod = d.get("product") or {}
+    mapa = None
+    for pid in (prod.get("id"), prod.get("short_id")):
+        if pid:
+            mapa = db.one("SELECT * FROM kiwify_products WHERE kiwify_id=?", (str(pid),))
+            if mapa:
+                break
+    cust = d.get("customer") or {}
+    email = str(cust.get("email") or "").strip().lower()
+    result = "ignorado"
+    if mapa and core.EMAIL_RE.match(email):
+        usr = db.one("SELECT * FROM users WHERE email=?", (email,))
+        if event == "purchase_approved":
+            if not usr:
+                uid = db.x("INSERT INTO users(email,name,role,pw_hash,must_change,created_at) VALUES (?,?, 'aluno', ?, 1, ?)",
+                           (email, (cust.get("name") or email.split("@")[0])[:120], core.hash_pw(secrets.token_urlsafe(24)), core.iso(core.now())))
+            else:
+                uid = usr["id"]
+            why = f"pedido {oid}"
+            if mapa["course_id"]:
+                core.grant(uid, "curso", mapa["course_id"], "cakto_purchase", None, why)
+            if mapa["all_courses"]:
+                core.grant(uid, "curso", 0, "cakto_purchase", None, why)
+            if mapa["support"]:
+                core.grant(uid, "suporte", 0, "cakto_purchase", None, why)
+            if mapa["plan"]:
+                core.grant(uid, "plano", mapa["plan"], "cakto_purchase", None, why)
+            db.x("INSERT OR IGNORE INTO purchases(order_id,ref,user_id,product_id,source,created_at) VALUES (?,?,?,?,?,?)",
+                 (oid, str(d.get("refId") or ""), uid, str(prod.get("id") or ""), "cakto", core.iso(core.now())))
+            result = "liberado"
+            cur = db.one("SELECT last_login, name FROM users WHERE id=?", (uid,))
+            if not cur["last_login"]:
+                link = f"{PUBLIC_URL}/primeiro-acesso?t={make_access_token(uid)}"
+                ref = str(d.get("refId") or oid[:8])
+                notify_buyer(email, cur["name"], str(cust.get("phone") or cust.get("whatsapp") or ""),
+                             f"Oi, {cur['name'].split(' ')[0]}! Sua compra foi confirmada. Crie sua senha e entre na área do aluno: {link}\n"
+                             f"Se preferir entrar pelo e-mail da compra, o código do seu pedido é {ref} (em {PUBLIC_URL}/primeiro-acesso).")
+        elif event in ("refund", "chargeback") and usr:
+            for e in db.q("SELECT id FROM entitlements WHERE user_id=? AND source='cakto_purchase' AND status='active' AND reason LIKE ?", (usr["id"], f"%{oid}%")):
+                core.revoke(e["id"], None, f"{event} pedido {oid}")
+            result = "revogado"
+    db.x("INSERT INTO webhook_events(event_id,kind,received_at,status) VALUES (?,?,?,?)", (eid, event, core.iso(core.now()), result))
+    return result

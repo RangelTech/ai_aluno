@@ -59,6 +59,11 @@ CREATE TABLE IF NOT EXISTS badges_earned (
   user_id INTEGER NOT NULL, badge TEXT NOT NULL, earned_at TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, badge));
 CREATE TABLE IF NOT EXISTS attendance (
   mentoria_id INTEGER NOT NULL, user_id INTEGER NOT NULL, joined_at TEXT NOT NULL, PRIMARY KEY (mentoria_id, user_id));
+CREATE TABLE IF NOT EXISTS purchases (
+  order_id TEXT PRIMARY KEY, ref TEXT NOT NULL DEFAULT '', user_id INTEGER NOT NULL, product_id TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS access_tokens (
+  token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires_at TEXT NOT NULL, used_at TEXT);
 CREATE TABLE IF NOT EXISTS certificates (
   id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, user_id INTEGER NOT NULL, course_id INTEGER NOT NULL,
   student_name TEXT NOT NULL, course_title TEXT NOT NULL, minutes INTEGER NOT NULL DEFAULT 0, pct INTEGER NOT NULL DEFAULT 0,
@@ -68,6 +73,9 @@ CREATE TABLE IF NOT EXISTS certificates (
 # colunas novas em tabelas que ja existem em producao (SQLite nao tem ADD COLUMN IF NOT EXISTS)
 MIGRATIONS = [
     ("users", "photo", "ALTER TABLE users ADD COLUMN photo TEXT NOT NULL DEFAULT ''"),
+    ("kiwify_products", "label", "ALTER TABLE kiwify_products ADD COLUMN label TEXT NOT NULL DEFAULT ''"),
+    ("kiwify_products", "plan", "ALTER TABLE kiwify_products ADD COLUMN plan INTEGER NOT NULL DEFAULT 0"),
+    ("kiwify_products", "all_courses", "ALTER TABLE kiwify_products ADD COLUMN all_courses INTEGER NOT NULL DEFAULT 0"),
     ("kiwify_products", "support", "ALTER TABLE kiwify_products ADD COLUMN support INTEGER NOT NULL DEFAULT 0"),
 ]
 

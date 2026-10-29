@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Produtos e vendas{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Produtos e vendas</h1>
+  <p class="muted">Cada produto do checkout (Cakto) é ligado ao que ele libera: curso, todos os cursos, suporte no WhatsApp e o plano (para contar as vagas depois). Pagou, a conta é criada e o acesso liberado. Reembolso ou chargeback revogam.</p></div></div>
+
+<div class="card" style="margin-bottom:18px"><h3>Webhook</h3>
+  <p class="muted small" style="margin:8px 0">Na Cakto, em Integrações → Webhooks, aponte para a URL abaixo e marque os eventos <code>purchase_approved</code>, <code>refund</code> e <code>chargeback</code>. O segredo que você definir lá vai na variável <code>CAKTO_SECRET</code> do servidor.</p>
+  <code class="cred">{{ url }}/webhooks/cakto</code>
+  <p style="margin-top:8px"><span class="pill {{ 'ok' if cakto_ativo else 'warn' }}">{{ 'Webhook ativo' if cakto_ativo else 'Desativado: falta o segredo no servidor' }}</span></p>
+  <p class="muted small" style="margin-top:10px">Para o comprador entrar: no e-mail ou na página de obrigado do produto, mande o link <code>{{ url }}/primeiro-acesso</code>. Ele informa o e-mail da compra e o código do pedido e cria a senha.</p></div>
+
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 380px;align-items:start">
+  <div class="card tw"><h3 style="margin-bottom:10px">Produtos cadastrados</h3>
+    <table><thead><tr><th>Produto</th><th>Libera</th><th></th></tr></thead><tbody>
+    {% for r in rows %}<tr><td><b>{{ r.label or 'Sem nome' }}</b><br><span class="muted small mono">{{ r.kiwify_id }}</span></td>
+      <td class="small">{% if r.plan %}{{ planos[r.plan] }}<br>{% endif %}{% if r.all_courses %}Todos os cursos<br>{% elif r.ctitle %}Curso: {{ r.ctitle }}<br>{% endif %}{% if r.support %}Suporte no WhatsApp{% endif %}</td>
+      <td style="text-align:right"><form method="post" action="/admin/produtos"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="produto" value="{{ r.kiwify_id }}"><button class="btn sm bad" name="acao" value="excluir" type="submit">Remover</button></form></td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Nenhum produto ainda.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><h3>Cadastrar ou editar produto</h3>
+    <form method="post" action="/admin/produtos" style="margin-top:14px"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label for="pn">Nome (só para você)</label><input id="pn" name="label" type="text" placeholder="Mentoria com acompanhamento"></div>
+      <div class="field"><label for="pp">ID do produto na Cakto</label><input id="pp" name="produto" type="text" required placeholder="product.id do webhook"></div>
+      <div class="field"><label for="pl">Plano (conta as vagas)</label><select id="pl" name="plan"><option value="0">Nenhum</option>{% for k, v in planos.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="pc">Curso liberado</label><select id="pc" name="course_id"><option value="">Nenhum</option>{% for c in cursos %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}</select></div>
+      <label class="chk"><input type="checkbox" name="all_courses"> Libera todos os cursos (a plataforma inteira)</label>
+      <label class="chk"><input type="checkbox" name="support"> Inclui suporte no WhatsApp</label>
+      <button class="btn pri" type="submit" style="margin-top:8px">Salvar produto</button></form></div>
+</div>
+
+<section class="sec"><div class="t"><h2>Últimas vendas recebidas</h2></div>
+  <div class="card tw"><table><thead><tr><th>Quando</th><th>Aluno</th><th>Pedido</th><th>Origem</th></tr></thead><tbody>
+  {% for v in vendas %}<tr><td class="muted">{{ fmt_local(v.created_at) }}</td><td><b>{{ v.name }}</b><br><span class="muted small">{{ v.email }}</span></td><td class="mono small">{{ v.ref or v.order_id[:8] }}</td><td>{{ v.source }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">Nenhuma venda ainda.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

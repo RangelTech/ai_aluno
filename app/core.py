@@ -118,7 +118,8 @@ def _active_clause():
 def has_entitlement(user, rtype, rid):
     if user["role"] == "admin":
         return True
-    r = db.one(f"SELECT 1 AS ok FROM entitlements WHERE user_id=:u AND resource_type=:t AND resource_id=:r AND {_active_clause()} LIMIT 1",
+    # curso com resource_id 0 = "todos os cursos" (ex.: produto da mentoria que inclui a plataforma inteira)
+    r = db.one(f"SELECT 1 AS ok FROM entitlements WHERE user_id=:u AND resource_type=:t AND (resource_id=:r OR (:t='curso' AND resource_id=0)) AND {_active_clause()} LIMIT 1",
                {"u": user["id"], "t": rtype, "r": rid, "n": iso(now())})
     return bool(r)
 
@@ -152,8 +153,11 @@ def revoke(ent_id, actor_id, reason=""):
 def course_ids_for(user):
     if user["role"] == "admin":
         return [r["id"] for r in db.q("SELECT id FROM courses")]
-    return [r["resource_id"] for r in db.q(f"SELECT resource_id FROM entitlements WHERE user_id=:u AND resource_type='curso' AND {_active_clause()}",
-                                           {"u": user["id"], "n": iso(now())})]
+    ids = [r["resource_id"] for r in db.q(f"SELECT resource_id FROM entitlements WHERE user_id=:u AND resource_type='curso' AND {_active_clause()}",
+                                          {"u": user["id"], "n": iso(now())})]
+    if 0 in ids:
+        return [r["id"] for r in db.q("SELECT id FROM courses")]
+    return ids
 
 
 # ---------- mentorias ----------
