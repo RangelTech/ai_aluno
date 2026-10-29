@@ -531,12 +531,22 @@ def setup(app, me, page, form, back, T):
             raise HTTPException(404, "produto_nao_encontrado")
         return JSONResponse(p)
 
+    @app.post("/admin/email-teste")
+    async def admin_email_teste(request: Request):
+        u = me(request, admin=True)
+        await form(request, u)
+        dest = os.environ.get("SMTP_USER") or u["email"]
+        ok, err = send_email(dest, "Teste de e-mail da área do aluno",
+                             "Este é um e-mail de teste enviado pelo painel da área do aluno. Se você recebeu, o envio automático (link de primeiro acesso e ofertas) está funcionando.")
+        core.audit(u["id"], "email_test", dest, err)
+        return back("/admin/produtos", ok=f"E-mail de teste enviado para {dest}." if ok else None, erro=None if ok else f"Não consegui enviar: {err}")
+
     @app.get("/admin/produtos", response_class=HTMLResponse)
     def admin_produtos(request: Request):
         u = me(request, admin=True)
         rows = db.q("SELECT k.*, c.title AS ctitle FROM kiwify_products k LEFT JOIN courses c ON c.id=k.course_id ORDER BY k.label, k.kiwify_id")
         ed = next((r for r in rows if r["kiwify_id"] == request.query_params.get("editar")), None)
-        return page(request, "admin_produtos.html", u, rows=rows, ed=ed, api_ativa=bool(PRODUCTS_API_TOKEN), brl=brl, nomes={r["kiwify_id"]: (r["label"] or r["kiwify_id"]) for r in rows}, cursos=db.q("SELECT id,title FROM courses ORDER BY title"), planos=PLANOS,
+        return page(request, "admin_produtos.html", u, rows=rows, ed=ed, api_ativa=bool(PRODUCTS_API_TOKEN), smtp_ativo=smtp_ativo(), smtp_de=os.environ.get("SMTP_FROM", ""), brl=brl, nomes={r["kiwify_id"]: (r["label"] or r["kiwify_id"]) for r in rows}, cursos=db.q("SELECT id,title FROM courses ORDER BY title"), planos=PLANOS,
                     cakto_ativo=bool(CAKTO_SECRET), url=PUBLIC_URL,
                     vendas=db.q("SELECT p.*, u.name, u.email FROM purchases p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 15"))
 
@@ -632,26 +642,44 @@ def token_user(tok):
     return db.one("SELECT * FROM users WHERE id=? AND active=1", (r["user_id"],))
 
 
+def smtp_ativo():
+    return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_PASSWORD"))
+
+
+def send_email(to, subject, text):
+    """Envia por SMTP (STARTTLS na 587, ou SSL na 465). Devolve (ok, erro)."""
+    host = os.environ.get("SMTP_HOST", "")
+    if not host:
+        return False, "SMTP nao configurado"
+    try:
+        import smtplib
+        import ssl
+        from email.message import EmailMessage
+        m = EmailMessage()
+        m["Subject"] = subject
+        m["From"] = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "nao-responda@rangeltech.net"))
+        m["To"] = to
+        m.set_content(text)
+        port = int(os.environ.get("SMTP_PORT", "587"))
+        if port == 465:
+            s = smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context())
+        else:
+            s = smtplib.SMTP(host, port, timeout=20)
+            s.starttls(context=ssl.create_default_context())
+        with s:
+            if os.environ.get("SMTP_USER"):
+                s.login(os.environ["SMTP_USER"], os.environ.get("SMTP_PASSWORD", ""))
+            s.send_message(m)
+        return True, ""
+    except Exception as e:  # noqa: BLE001
+        return False, str(e)[:200]
+
+
 def notify_buyer(email, name, phone, text):
     """Entrega a mensagem de boas-vindas por e-mail (SMTP) e/ou por um webhook de saida (ex.: o fluxo de WhatsApp). Falha nunca derruba a venda."""
-    host = os.environ.get("SMTP_HOST", "")
-    if host:
-        try:
-            import smtplib
-            from email.message import EmailMessage
-            m = EmailMessage()
-            m["Subject"] = "Seu acesso à área do aluno"
-            m["From"] = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "nao-responda@rangeltech.net"))
-            m["To"] = email
-            m.set_content(text)
-            with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", "587")), timeout=20) as s:
-                s.starttls()
-                if os.environ.get("SMTP_USER"):
-                    s.login(os.environ["SMTP_USER"], os.environ.get("SMTP_PASSWORD", ""))
-                s.send_message(m)
-            core.audit(None, "welcome_email_sent", email)
-        except Exception as e:  # noqa: BLE001
-            core.audit(None, "welcome_email_fail", email, str(e)[:200])
+    if os.environ.get("SMTP_HOST"):
+        ok, err = send_email(email, "Seu acesso à área do aluno", text)
+        core.audit(None, "welcome_email_sent" if ok else "welcome_email_fail", email, err)
     url = os.environ.get("NOTIFY_WEBHOOK_URL", "")
     if url:
         try:

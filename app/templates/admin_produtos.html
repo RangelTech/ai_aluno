@@ -4,6 +4,11 @@
 <div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Produtos e vendas</h1>
   <p class="muted">Aqui ficam o nome, o preço e o link de pagamento de cada produto. Esses dados ficam no banco e são a fonte para a IA do WhatsApp (via API abaixo). Cada produto também é ligado ao que libera: cursos, suporte no WhatsApp e o plano. Pagou, a conta é criada e o acesso liberado. Reembolso ou chargeback revogam.</p></div></div>
 
+<div class="card" style="margin-bottom:18px"><h3>E-mail de envio</h3>
+  <p class="muted small" style="margin:8px 0">Usado para mandar ao comprador o link de primeiro acesso e as ofertas de downsell. Remetente: <code>{{ smtp_de or 'não configurado' }}</code></p>
+  <p><span class="pill {{ 'ok' if smtp_ativo else 'warn' }}">{{ 'Envio por e-mail ativo' if smtp_ativo else 'Desativado: falta configurar o SMTP no servidor' }}</span></p>
+  {% if smtp_ativo %}<form method="post" action="/admin/email-teste" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm" type="submit">Enviar e-mail de teste (para a própria caixa de envio)</button></form>{% endif %}</div>
+
 <div class="grid g2" style="margin-bottom:18px">
   <div class="card"><h3>Webhook da Cakto</h3>
     <p class="muted small" style="margin:8px 0">Na Cakto: Integrações → Webhooks, eventos <code>purchase_approved</code>, <code>refund</code>, <code>chargeback</code> e <code>checkout_abandonment</code>. O segredo fica em <code>CAKTO_SECRET</code> no servidor.</p>
