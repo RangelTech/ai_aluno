@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Agenda de calls{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Agenda de calls</h1>
+  <p class="muted">Calls de qualificação de 30 min (quiz com resultado "cara a cara"). Janela 7h30–22h todos os dias, folga de 15 min, 7 dias à frente. Só aparece livre o que não estiver bloqueado aqui.</p></div>
+  {% if ics_url %}<a class="btn sm" href="{{ ics_url }}">Exportar .ics</a>{% endif %}</div>
+{% if not banco %}<div class="msg er">Banco Postgres indisponível (DATABASE_URL). A agenda está desligada.</div>{% else %}
+
+<section class="sec" style="margin-top:0"><div class="t"><h2>Bloquear horário</h2><span class="muted small">lance a sua agenda aqui; o que estiver bloqueado não é oferecido</span></div>
+  <form class="card" method="post" action="/admin/agenda/bloqueio">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="row r2"><div class="field"><label>Início</label><input type="datetime-local" name="inicio" required></div><div class="field"><label>Fim</label><input type="datetime-local" name="fim" required></div></div>
+    <div class="row r2"><div class="field"><label>Motivo (só você vê)</label><input type="text" name="motivo" maxlength="80" placeholder="ex.: trabalho, almoço"></div>
+      <div class="field"><label>&nbsp;</label><label class="chk"><input type="checkbox" name="repete" value="1"> Repetir toda semana (mesmo dia e horário)</label></div></div>
+    <button class="btn pri" type="submit">Bloquear</button>
+  </form>
+  {% if bloqueios %}<div class="card tw" style="margin-top:14px"><table><thead><tr><th>Início</th><th>Fim</th><th>Repete</th><th>Motivo</th><th></th></tr></thead><tbody>
+  {% for b in bloqueios %}<tr><td>{{ b.inicio.astimezone(tz).strftime('%d/%m %H:%M') }}</td><td>{{ b.fim.astimezone(tz).strftime('%d/%m %H:%M') }}</td><td>{{ 'toda semana' if b.repete_semanal else '—' }}</td><td class="muted">{{ b.motivo }}</td>
+    <td><form method="post" action="/admin/agenda/bloqueio/{{ b.id }}/remover"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm bad" type="submit">Remover</button></form></td></tr>{% endfor %}</tbody></table></div>{% endif %}
+</section>
+
+<section class="sec"><div class="t"><h2>Próximos 14 dias</h2><span class="muted small">laço de lembretes: {% if log %}{{ log[-1].agora and fmt_local(log[-1].agora) }} · 24h {{ log[-1].lembrete_24h }} · 1h {{ log[-1].lembrete_1h }} · faltas {{ log[-1].faltou }}{% else %}ainda não rodou{% endif %}</span></div>
+  <div class="grid g2">
+  {% for d in dias %}
+    <div class="card"><h3>{{ d.dia }} {{ d.rotulo }}</h3>
+      {% if d.bloqueios %}<p class="muted small" style="margin-top:6px">Bloqueios: {% for b in d.bloqueios %}{{ b.inicio.astimezone(tz).strftime('%H:%M') }}–{{ b.fim.astimezone(tz).strftime('%H:%M') }}{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
+      {% for r in d.reservas %}
+      <details class="card" style="margin-top:10px;padding:14px"><summary><b>{{ r.inicio.astimezone(tz).strftime('%H:%M') }}</b> · {{ r.nome }} · <span class="pill {{ 'ok' if r.estado in ('marcada','confirmada','compareceu') else 'warn' }}">{{ r.estado }}</span></summary>
+        <p class="small" style="margin-top:10px"><a href="https://wa.me/{{ r.whatsapp|replace('+','') }}" target="_blank" rel="noopener">{{ r.whatsapp }}</a> · {{ r.email }}</p>
+        <p class="small muted" style="margin-top:6px">{{ r.situacao }} · {{ r.objetivo }} · prazo {{ r.prazo }} · custo {{ r.custo_mes }}</p>
+        {% if r.problema %}<p class="small" style="margin-top:6px">“{{ r.problema }}”</p>{% endif %}
+        <form method="post" action="/admin/agenda/reserva/{{ r.codigo }}/link" style="margin-top:10px;display:flex;gap:8px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="text" name="link_chamada" value="{{ r.link_chamada }}" placeholder="link da chamada (Meet)"><button class="btn sm" type="submit">Salvar e enviar</button></form>
+        {% if r.estado in ('marcada','confirmada') %}<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <form method="post" action="/admin/agenda/reserva/{{ r.codigo }}/compareceu"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm pri" type="submit">Compareceu</button></form>
+          <form method="post" action="/admin/agenda/reserva/{{ r.codigo }}/faltou"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm" type="submit">Faltou</button></form>
+          <form method="post" action="/admin/agenda/reserva/{{ r.codigo }}/cancelar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sm bad" type="submit">Cancelar</button></form></div>{% endif %}
+      </details>
+      {% else %}<p class="muted small" style="margin-top:8px">Nenhuma call.</p>{% endfor %}
+    </div>
+  {% endfor %}
+  </div></section>
+{% endif %}
+{% endblock %}

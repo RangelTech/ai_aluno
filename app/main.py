@@ -14,7 +14,9 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import ciclo, core, db, extras, media
+import asyncio
+
+from . import agenda, ciclo, core, db, extras, funil, media, pg, prova
 
 BASE = os.path.dirname(__file__)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -40,6 +42,22 @@ def _startup():
     db.init()
     core.ensure_master()
     media.resume_pending()
+    try:
+        if pg.init():
+            core.audit(None, "pg_ok", "", "")
+    except Exception as e:  # noqa: BLE001
+        core.audit(None, "pg_falhou", "", str(e)[:400])
+
+
+@app.on_event("startup")
+async def _startup_async():
+    if pg.ativo():
+        asyncio.create_task(agenda.laco())
+
+
+@app.on_event("shutdown")
+def _shutdown():
+    pg.fechar()
 
 
 @app.exception_handler(NeedLogin)
@@ -858,3 +876,6 @@ async def kiwify(request: Request):
 
 extras.setup(app, me, page, form, back, T)
 ciclo.setup(app, me, page, form, back, T, extras)
+funil.setup(app, me, page, form, back, T, extras)
+agenda.setup(app, me, page, form, back, T, extras)
+prova.setup(app, me, page, form, back, T, extras)

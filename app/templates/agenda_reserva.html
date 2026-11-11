@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Sua call{% endblock %}
+{% block anon %}
+<style>
+.ag{max-width:620px;margin:0 auto;padding:28px 18px 80px}
+.topo{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;margin-bottom:26px}.topo img{width:26px;height:26px;border-radius:7px}
+.card{margin-top:18px}.btn.hot{background:#FF4B32;border-color:#FF4B32;color:#0a0a0a}
+</style>
+<main class="ag">
+  <div class="topo"><img src="/static/icon.png" alt="">Lucas Rangel · agenda</div>
+  {% if ok %}<div class="msg ok">{{ ok }}</div>{% endif %}{% if erro %}<div class="msg er">{{ erro }}</div>{% endif %}
+  <h1>Sua call com o Lucas</h1>
+  <div class="card">
+    <p><b>{{ agenda_fmt(r.inicio) }}</b> · horário de Brasília · 30 minutos</p>
+    <p class="muted" style="margin-top:6px">Situação: <span class="pill {{ 'ok' if r.estado in ('marcada','confirmada','compareceu') else 'warn' }}">{{ {'marcada':'marcada','confirmada':'confirmada','compareceu':'realizada','faltou':'não compareceu','cancelada':'cancelada','remarcada':'remarcada'}[r.estado] }}</span></p>
+    {% if r.link_chamada and r.estado in ('marcada','confirmada') %}<p style="margin-top:14px"><a class="btn hot" href="{{ r.link_chamada }}">Entrar na call</a></p>{% elif r.estado in ('marcada','confirmada') %}<p class="muted small" style="margin-top:10px">O link da chamada chega por e-mail antes da hora.</p>{% endif %}
+  </div>
+  {% if r.estado in ('marcada','confirmada') %}
+  <div class="card">
+    <h3>Precisa mudar?</h3>
+    <p class="muted small" style="margin:8px 0 14px">Cancele e escolha outro horário. O horário atual é liberado na hora.</p>
+    <form method="post" action="/agenda/{{ r.codigo }}/cancelar" style="display:inline"><input type="hidden" name="k" value="{{ k }}"><button class="btn bad" type="submit">Cancelar esta call</button></form>
+  </div>
+  {% else %}
+  <div class="card"><h3>Quer marcar outro horário?</h3><p style="margin-top:12px"><a class="btn hot" href="/agendar?t={{ r.qtoken }}">Ver horários livres</a></p></div>
+  {% endif %}
+</main>
+{% endblock %}

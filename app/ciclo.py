@@ -15,7 +15,7 @@ from . import core, db
 
 REGRAS_PATH = os.path.join(os.path.dirname(__file__), "ciclo_regras.json")
 EVENTOS = {"checkout_abandonment": "carrinho", "pix_gerado": "pix", "boleto_gerado": "boleto", "purchase_refused": "recusado"}
-KINDS_VENDA = ("carrinho", "pix", "boleto", "recusado")
+KINDS_VENDA = ("carrinho", "pix", "boleto", "recusado", "quiz", "faltou")
 
 
 def regras():
@@ -111,7 +111,7 @@ def _motivo_parada(L, age_h, r, passo):
         if db.one("SELECT 1 AS ok FROM purchases p JOIN users u ON u.id=p.user_id WHERE p.created_at>=? AND ((?<>'' AND u.email=?) OR (?<>'' AND u.cpf=?))",
                   (L["created_at"], L["email"], L["email"], L["cpf"], L["cpf"])):
             return "comprou"
-        if not db.one("SELECT 1 AS ok FROM kiwify_products WHERE kiwify_id=? AND pay_url<>''", (L["product_id"],)):
+        if L["kind"] not in ("quiz", "faltou") and not db.one("SELECT 1 AS ok FROM kiwify_products WHERE kiwify_id=? AND pay_url<>''", (L["product_id"],)):
             return "sem_link_do_produto"
     if L["kind"] == "onboarding" and passo and passo.get("se_nunca_entrou"):
         u = db.one("SELECT last_login FROM users WHERE id=?", (L["user_id"],))
@@ -128,6 +128,17 @@ def _montar(L, passo):
     link = mapa.get("pay_url", "")
     ctx = {"variante": passo["variante"], "nome": nome, "produto": extras.limpa_nome(mapa.get("label")) or "a mentoria", "link": link,
            "link_login": f"{extras.PUBLIC_URL}/login", "link_esqueci": f"{extras.PUBLIC_URL}/esqueci-senha"}
+    if L["kind"] in ("quiz", "faltou"):
+        # lead do site: order_id guarda o token do quiz; o link e para retomar o quiz (ou remarcar a call)
+        from . import funil, pg
+        q = pg.one("SELECT * FROM quiz_leads WHERE token=%s", (L["order_id"],)) if pg.ativo() else None
+        if q and L["kind"] == "quiz" and q["status"] in ("agendado", "compareceu"):
+            return None
+        ctx["link"] = f"{funil.SITE_URL}/?q={L['order_id']}" if L["kind"] == "quiz" else f"{funil.PUBLIC_URL}/agendar?t={L['order_id']}"
+        ctx["pergunta"] = funil.proxima_tela(q) if q else 5
+        ctx["problema"] = (q or {}).get("problema", "")
+        if passo["variante"] == "oferta":
+            ctx["link"] = link or funil.checkout_1k()[0]
     if passo.get("usa_downsell"):
         nxt = db.one("SELECT * FROM kiwify_products WHERE kiwify_id=?", (mapa.get("downsell_id", ""),)) if mapa.get("downsell_id") else None
         if not nxt or not nxt["pay_url"]:

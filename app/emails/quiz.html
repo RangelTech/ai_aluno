@@ -1,0 +1,29 @@
+{#
+  Recuperação do quiz do site (deixou contato e parou, ou terminou e não agiu). Uma mensagem por passo; "variante" escolhe o texto.
+  Variáveis: variante (retomar | lembrete | oferta | ultima), nome, pergunta (número da próxima tela), problema, link, link_sair, site.
+  Sem valores em reais.
+#}
+{% extends "_layout.html" %}
+{% block conteudo %}
+{% if variante == 'retomar' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">{{ nome }}, faltam poucas perguntas</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Você parou na pergunta {{ pergunta }}. Em menos de um minuto eu te digo qual é o melhor jeito de resolver o seu problema. Continua de onde parou:</p>
+{% elif variante == 'lembrete' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Seu diagnóstico ficou pela metade</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">{{ nome }}, {% if problema %}você me contou isto: <b style="color:#ffffff;">“{{ problema }}”</b>. {% endif %}Isso não melhora sozinho. Melhora quando alguém resolve. Termina as perguntas e eu te mostro por onde começar.</p>
+{% elif variante == 'oferta' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Um jeito de começar a resolver hoje</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">{{ nome }}, dá para começar pelo acompanhamento no WhatsApp: você manda o problema, a dúvida, o erro, e eu destravo com você, no seu ritmo. Garantia de 7 dias: não resolveu, devolvo.</p>
+{% else %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Última mensagem sobre isso</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">{{ nome }}, não quero te incomodar. Se um dia o problema apertar, o caminho continua aberto: é só voltar ao site.</p>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px 0;"><tr>
+  <td align="center" bgcolor="#FF4B32" style="border-radius:999px;background:#FF4B32;">
+    <a href="{{ link }}" style="display:inline-block;padding:15px 34px;font-size:16px;font-weight:700;color:#0a0a0a;text-decoration:none;border-radius:999px;">{% if variante == 'oferta' %}Quero começar pelo WhatsApp{% else %}Continuar de onde parei{% endif %}</a>
+  </td>
+</tr></table>
+
+<p style="margin:0;font-size:14.5px;line-height:1.6;color:#8fa3c2;">Qualquer dúvida, é só responder este e-mail.</p>
+{% endblock %}

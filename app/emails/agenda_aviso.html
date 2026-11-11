@@ -1,0 +1,10 @@
+{#
+  Aviso interno para o Lucas (MASTER_EMAIL). Variáveis: variante (reserva | empresa), nome, whatsapp, email, quando, resumo (lista de linhas), link_admin.
+#}
+{% extends "_layout.html" %}
+{% block conteudo %}
+<h1 style="margin:0 0 6px 0;font-size:26px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">{% if variante == 'empresa' %}Lead de empresa quente{% else %}Nova call marcada{% endif %}</h1>
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#b9c8e0;"><b style="color:#ffffff;">{{ nome }}</b>{% if quando %} · {{ quando }}{% endif %}<br>WhatsApp: <a href="https://wa.me/{{ whatsapp|replace('+','') }}" style="color:#9cc9ff;">{{ whatsapp }}</a> · {{ email }}</p>
+<ul style="margin:0 0 22px 18px;padding:0;font-size:15px;line-height:1.6;color:#b9c8e0;">{% for l in resumo %}<li>{{ l }}</li>{% endfor %}</ul>
+<p style="margin:0;font-size:14.5px;line-height:1.6;color:#8fa3c2;"><a href="{{ link_admin }}" style="color:#9cc9ff;">Abrir no painel</a></p>
+{% endblock %}

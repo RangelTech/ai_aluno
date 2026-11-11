@@ -1,0 +1,8 @@
+{{ nome }}, {% if variante == '1h' %}daqui a uma hora{% else %}amanhã{% endif %} a gente conversa.
+
+A nossa call é {{ quando }} (horário de Brasília). Separe 30 minutos sem interrupção e o seu problema em uma frase.
+{% if link_chamada %}Link da chamada: {{ link_chamada }}{% else %}O link da chamada chega por e-mail antes da hora.{% endif %}
+
+Não vai conseguir? Remarque aqui: {{ link_reserva }}
+
+Lucas Rangel · Rangel Tech

@@ -16,5 +16,22 @@
   "pagamento.recusado_lembrete": "Posso ajudar com o pagamento?",
   "onboarding": "Seu acesso à área do aluno",
   "onboarding.primeiro_passo": "Seu acesso está te esperando",
-  "onboarding.ajuda": "Precisa de ajuda para entrar?"
+  "onboarding.ajuda": "Precisa de ajuda para entrar?",
+  "quiz": "Você parou no meio do caminho",
+  "quiz.retomar": "Faltam poucas perguntas para eu te responder",
+  "quiz.lembrete": "Seu diagnóstico ficou pela metade",
+  "quiz.oferta": "Um jeito de começar a resolver hoje",
+  "quiz.ultima": "Última mensagem sobre o seu problema",
+  "agenda_confirmacao": "Sua call com o Lucas está marcada",
+  "agenda_confirmacao.nova": "Sua call com o Lucas está marcada",
+  "agenda_confirmacao.link": "O link da sua call com o Lucas",
+  "agenda_lembrete": "Lembrete da sua call",
+  "agenda_lembrete.24h": "Amanhã a gente conversa",
+  "agenda_lembrete.1h": "Daqui a uma hora: sua call com o Lucas",
+  "agenda_aviso": "Nova call marcada",
+  "agenda_aviso.reserva": "Nova call marcada",
+  "agenda_aviso.empresa": "Lead de empresa quente no WhatsApp",
+  "agenda_faltou": "A gente se desencontrou",
+  "agenda_faltou.primeira": "A gente se desencontrou hoje",
+  "agenda_faltou.segunda": "Quer remarcar a sua call?"
 }

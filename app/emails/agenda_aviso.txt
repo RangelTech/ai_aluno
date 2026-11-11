@@ -1,0 +1,5 @@
+{% if variante == 'empresa' %}Lead de empresa quente{% else %}Nova call marcada{% endif %}: {{ nome }}{% if quando %} · {{ quando }}{% endif %}
+WhatsApp: {{ whatsapp }} · {{ email }}
+{% for l in resumo %}- {{ l }}
+{% endfor %}
+Painel: {{ link_admin }}

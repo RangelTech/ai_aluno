@@ -1,0 +1,12 @@
+{% if variante == 'primeira' %}{{ nome }}, a gente se desencontrou.
+
+Eu estava na sala e você não apareceu. Acontece. O seu problema continua lá, e eu continuo disposto a resolver com você. Escolhe outro horário:
+{% else %}{{ nome }}, quer remarcar?
+
+Se ainda fizer sentido, a agenda está aberta. Se não for o momento, tudo bem: esta é a última vez que escrevo sobre isso.
+{% endif %}
+
+{{ link }}
+
+Lucas Rangel · Rangel Tech
+{% if link_sair %}Não quero mais receber: {{ link_sair }}{% endif %}

@@ -1,0 +1,22 @@
+{#
+  Confirmação da call de qualificação (30 min). Variáveis: variante (nova | link), nome, quando, link_chamada (pode estar vazio), link_reserva (ver/cancelar/remarcar), site.
+#}
+{% extends "_layout.html" %}
+{% block conteudo %}
+{% if variante == 'link' %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">O link da sua call</h1>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">{{ nome }}, a nossa conversa é <b style="color:#ffffff;">{{ quando }}</b> (horário de Brasília). Entre por este link na hora:</p>
+{% else %}
+<h1 style="margin:0 0 6px 0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:#ffffff;">Marcado, {{ nome }}.</h1>
+<p style="margin:0 0 16px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">A nossa call é <b style="color:#ffffff;">{{ quando }}</b> (horário de Brasília), 30 minutos. Eu vou te conhecer, você vai conhecer o meu trabalho, e a gente fecha o que precisa ser resolvido e como.</p>
+<p style="margin:0 0 24px 0;font-size:16.5px;line-height:1.6;color:#b9c8e0;">Leve o seu problema descrito em uma frase e, se tiver, o que você já tentou. {% if not link_chamada %}O link da chamada chega por e-mail antes da hora.{% endif %}</p>
+{% endif %}
+{% if link_chamada %}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;"><tr>
+  <td align="center" bgcolor="#FF4B32" style="border-radius:999px;background:#FF4B32;">
+    <a href="{{ link_chamada }}" style="display:inline-block;padding:15px 34px;font-size:16px;font-weight:700;color:#0a0a0a;text-decoration:none;border-radius:999px;">Entrar na call</a>
+  </td>
+</tr></table>
+{% endif %}
+<p style="margin:0;font-size:14.5px;line-height:1.6;color:#8fa3c2;">Precisa mudar? <a href="{{ link_reserva }}" style="color:#9cc9ff;">Cancelar ou remarcar</a>. Garantia de 7 dias em qualquer caminho que você escolher depois.</p>
+{% endblock %}

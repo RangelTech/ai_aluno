@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Funil do site{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Funil do site (quiz)</h1>
+  <p class="muted">Quem respondeu ao quiz em ai.rangeltech.net. O destino é decidido pelas regras da spec: empresa → WhatsApp; cara a cara com prazo → agenda; WhatsApp → checkout; só pesquisando → recuperação por e-mail.</p></div></div>
+{% if not banco %}<div class="msg er">Banco Postgres indisponível (DATABASE_URL).</div>{% else %}
+<div class="grid g4">{% for k, n in cont.items() %}<div class="card stat"><b>{{ n }}</b><span>{{ k }}</span></div>{% endfor %}</div>
+<section class="sec"><div class="t"><h2>Últimos 200</h2></div>
+  <div class="card tw"><table><thead><tr><th>Quando</th><th>Pessoa</th><th>Respostas</th><th>Resultado</th><th>Situação</th></tr></thead><tbody>
+  {% for q in rows %}<tr>
+    <td class="muted small">{{ q.criado_em.strftime('%d/%m %H:%M') }}<br>tela {{ q.etapa }}</td>
+    <td><b>{{ q.nome }}</b><br><span class="small"><a href="https://wa.me/{{ q.whatsapp|replace('+','') }}" target="_blank" rel="noopener">{{ q.whatsapp }}</a><br>{{ q.email }}</span></td>
+    <td class="small">{{ rotulos.situacao.get(q.situacao, q.situacao) }} · {{ rotulos.objetivo.get(q.objetivo, q.objetivo) }}{% if q.prazo %} · {{ rotulos.prazo.get(q.prazo) }}{% endif %}{% if q.custo_mes %} · {{ rotulos.custo_mes.get(q.custo_mes) }}{% endif %}{% if q.formato %} · {{ rotulos.formato.get(q.formato) }}{% endif %}
+      {% if q.problema %}<br>“{{ q.problema }}”{% endif %}{% if q.tentou %}<br><span class="muted">tentou: {{ q.tentou }}</span>{% endif %}{% if q.empresa_porte %}<br><span class="muted">empresa: {{ q.empresa_porte }} · {{ q.empresa_decisor }}</span>{% endif %}</td>
+    <td class="small">{% if q.resultado %}<b>{{ q.resultado }}</b> → {{ q.destino_tipo }}{% if q.quente %} <span class="pill live">quente</span>{% endif %}{% else %}<span class="muted">em andamento</span>{% endif %}</td>
+    <td><span class="pill {{ 'ok' if q.status in ('agendado','compareceu') else ('warn' if q.status == 'faltou' else 'live') }}">{{ q.status }}</span>{% if q.reserva %}<br><span class="muted small">call {{ q.reserva }}</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">Ninguém respondeu ainda.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endif %}
+{% endblock %}

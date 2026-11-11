@@ -1,0 +1,15 @@
+{% if variante == 'link' %}{{ nome }}, o link da sua call.
+
+A nossa conversa é {{ quando }} (horário de Brasília). Entre por este link na hora:
+{{ link_chamada }}
+{% else %}Marcado, {{ nome }}.
+
+A nossa call é {{ quando }} (horário de Brasília), 30 minutos. Eu vou te conhecer, você vai conhecer o meu trabalho, e a gente fecha o que precisa ser resolvido e como.
+
+Leve o seu problema descrito em uma frase e, se tiver, o que você já tentou.{% if link_chamada %}
+Link da chamada: {{ link_chamada }}{% else %} O link da chamada chega por e-mail antes da hora.{% endif %}
+{% endif %}
+
+Cancelar ou remarcar: {{ link_reserva }}
+
+Lucas Rangel · Rangel Tech

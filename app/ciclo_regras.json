@@ -37,6 +37,22 @@
         { "apos_horas": 48, "modelo": "pagamento", "variante": "recusado_lembrete", "canais": ["email"] }
       ]
     },
+    "quiz": {
+      "_descricao": "Comecou o quiz do site (deixou contato) e nao chegou ao fim ou nao agiu",
+      "passos": [
+        { "apos_horas": 1,   "modelo": "quiz", "variante": "retomar",  "canais": ["email"] },
+        { "apos_horas": 24,  "modelo": "quiz", "variante": "lembrete", "canais": ["email"] },
+        { "apos_horas": 72,  "modelo": "quiz", "variante": "oferta",   "canais": ["email"], "usa_downsell": false },
+        { "apos_horas": 168, "modelo": "quiz", "variante": "ultima",   "canais": ["email"] }
+      ]
+    },
+    "faltou": {
+      "_descricao": "Marcou a call de qualificacao e nao apareceu",
+      "passos": [
+        { "apos_horas": 2,  "modelo": "agenda_faltou", "variante": "primeira", "canais": ["email"] },
+        { "apos_horas": 48, "modelo": "agenda_faltou", "variante": "segunda",  "canais": ["email"] }
+      ]
+    },
     "onboarding": {
       "_descricao": "Comprou e ainda nao entrou na area do aluno",
       "passos": [

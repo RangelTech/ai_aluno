@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Prova social{% endblock %}
+{% block body %}
+<div class="head"><div><a class="small" href="/admin">← Administração</a><h1 style="margin-top:6px">Prova social do site</h1>
+  <p class="muted">Mapa, números, depoimentos e logos que o site de vendas mostra (<code>GET /api/prova</code>). A origem de cada linha fica só aqui dentro; a API nunca a devolve.</p></div></div>
+{% if not banco %}<div class="msg er">Banco Postgres indisponível (DATABASE_URL).</div>{% else %}
+<div class="grid g4">
+  <div class="card stat"><b>{{ cont.numeros.mentorados }}</b><span>mentorados no mapa</span></div>
+  <div class="card stat"><b>{{ cont.numeros.estados }}</b><span>estados</span></div>
+  <div class="card stat"><b>{{ cont.numeros.empresas }}</b><span>empresas no mapa</span></div>
+  <div class="card stat"><b>{{ cont.prova_depoimentos.values()|sum }}</b><span>depoimentos · {{ cont.prova_logos.values()|sum }} logos</span></div>
+</div>
+<section class="sec"><div class="t"><h2>Origem das linhas</h2></div>
+  <div class="card tw"><table><thead><tr><th>Tabela</th><th>inicial</th><th>real</th></tr></thead><tbody>
+  {% for t in ('prova_mapa','prova_depoimentos','prova_logos') %}<tr><td><code>{{ t }}</code></td><td>{{ cont[t].get('inicial',0) }}</td><td>{{ cont[t].get('real',0) }}</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="sec"><div class="t"><h2>Importar</h2><span class="muted small">substitui tudo com origem "inicial"</span></div>
+  <form class="card" method="post" action="/admin/prova/importar" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="field"><label>Arquivo JSON: {"mapa":[{"uf","cidade","lat","lon","tipo"}], "depoimentos":[{"nome","cargo","texto","foto"}], "logos":[{"nome","arquivo"}]}</label><input type="file" name="arquivo" accept="application/json" required></div>
+    <button class="btn pri" type="submit">Importar</button></form></section>
+<section class="sec"><div class="t"><h2>Exposição</h2></div>
+  <form class="card" method="post" action="/admin/prova/publica"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="chk"><input type="checkbox" name="ligar" value="1" {{ 'checked' if publica }}> Entregar os dados pela API (desligado = o site não mostra mapa nem depoimentos)</label>
+    <button class="btn" type="submit" style="margin-top:10px">Salvar</button></form></section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% if variante == 'retomar' %}{{ nome }}, faltam poucas perguntas.
+
+Você parou na pergunta {{ pergunta }}. Em menos de um minuto eu te digo qual é o melhor jeito de resolver o seu problema. Continua de onde parou:
+{% elif variante == 'lembrete' %}{{ nome }}, seu diagnóstico ficou pela metade.
+
+{% if problema %}Você me contou isto: "{{ problema }}". {% endif %}Isso não melhora sozinho. Melhora quando alguém resolve. Termina as perguntas e eu te mostro por onde começar:
+{% elif variante == 'oferta' %}{{ nome }}, um jeito de começar a resolver hoje.
+
+Dá para começar pelo acompanhamento no WhatsApp: você manda o problema, a dúvida, o erro, e eu destravo com você, no seu ritmo. Garantia de 7 dias: não resolveu, devolvo.
+{% else %}{{ nome }}, última mensagem sobre isso.
+
+Não quero te incomodar. Se um dia o problema apertar, o caminho continua aberto: é só voltar ao site.
+{% endif %}
+
+{{ link }}
+
+Qualquer dúvida, é só responder.
+Lucas Rangel · Rangel Tech
+{% if link_sair %}Não quero mais receber: {{ link_sair }}{% endif %}
