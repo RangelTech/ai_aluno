@@ -17,7 +17,7 @@ WHATSAPP = os.environ.get("SUPPORT_WHATSAPP", "5562985613482")
 CHECKOUT_1K_PADRAO = "https://pay.cakto.com.br/qddg2xq"
 
 SITUACOES = ("empresa", "empregado", "desempregado", "autonomo")
-OBJETIVOS = ("saas", "renda", "tempo", "carreira", "aprender", "outro", "atendimento", "vendas", "sistema", "dados", "empresa")
+OBJETIVOS = ("saas", "renda", "tempo", "carreira", "aprender", "outro", "atendimento", "vendas", "sistema", "dados", "custo", "empresa")
 PRAZOS = ("semana", "30dias", "3meses", "pesquisando")
 FORMATOS = ("whatsapp", "cara_a_cara")
 CUSTOS = ("ate500", "500a2000", "2000a10000", "mais10000", "naosei")
@@ -28,7 +28,7 @@ ROTULOS = {
     "situacao": {"empresa": "tem uma empresa", "empregado": "está empregado", "desempregado": "está desempregado", "autonomo": "é autônomo"},
     "objetivo": {"saas": "criar um software ou SaaS", "renda": "ganhar renda online", "tempo": "ganhar tempo com automação", "carreira": "mudar de carreira para IA",
                  "empresa": "resolver um problema da empresa", "aprender": "aprender IA do zero", "outro": "outro objetivo",
-                 "atendimento": "resolver o atendimento", "vendas": "vender mais com menos gente", "sistema": "trocar o sistema velho", "dados": "organizar os dados da empresa"},
+                 "atendimento": "resolver o atendimento", "vendas": "vender mais com menos gente", "sistema": "trocar o sistema velho", "dados": "organizar os dados da empresa", "custo": "cortar custo com tarefa que a IA faz melhor"},
     "prazo": {"semana": "esta semana", "30dias": "em até 30 dias", "3meses": "em até 3 meses", "pesquisando": "só pesquisando"},
     "custo_mes": {"ate500": "até R$ 500 por mês", "500a2000": "de R$ 500 a R$ 2.000 por mês", "2000a10000": "de R$ 2.000 a R$ 10.000 por mês", "mais10000": "mais de R$ 10.000 por mês", "naosei": "não sabe"},
     "porte": {"so_eu": "só uma pessoa", "2a10": "2 a 10 pessoas", "11a50": "11 a 50 pessoas", "mais50": "mais de 50 pessoas"},
