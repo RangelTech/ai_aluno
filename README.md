@@ -1,3 +1,42 @@
+<!-- readme-padrao -->
+# Área do aluno da mentoria
+
+> Área do aluno da mentoria de Lucas Rangel: cursos, primeiro acesso, ciclo de vida (recuperação de carrinho e downsell) e webhook da Cakto.
+
+![Tela principal](docs/img/principal.webp)
+
+## O que é
+Área do aluno da mentoria de Lucas Rangel: cursos, primeiro acesso, ciclo de vida (recuperação de carrinho e downsell) e webhook da Cakto.
+
+Estado: **no ar**.
+
+## Onde está no ar
+- https://user.rangeltech.net
+
+## Onde faz o deploy
+Este repositório **só publica** o artefato (release com imagem e manifesto); **quem implanta é o `vps_rt_infra`**.
+
+- Serviço `ai-aluno`: `gh workflow run deploy.yml --repo RangelTech/vps_rt_infra -f service=ai-aluno` (só validar: `-f dry_run=true`; voltar versão: `-f version=<tag-antiga>`)
+- Serviço `ai-aluno-turn`: `gh workflow run deploy.yml --repo RangelTech/vps_rt_infra -f service=ai-aluno-turn` (só validar: `-f dry_run=true`; voltar versão: `-f version=<tag-antiga>`)
+
+Os `.env` desses serviços são gerados do Infisical no momento do deploy (spec 57, seção 0A).
+
+## Como funciona por dentro
+Resumo acima; os detalhes estão nas notas técnicas (README anterior) abaixo e na spec 57.
+
+## Segredos
+Nenhum valor de segredo fica neste repositório. Os segredos dos serviços ficam no Infisical (mapa em `vps_rt_infra/scripts/infisical/mapa_envs.json`) e chegam à VPS gerados no deploy.
+
+## Rodar e testar localmente
+Ver as notas técnicas abaixo (cada repositório tem o seu jeito); os testes de QA em produção são por cliques reais, com evidência em `new_ragente/qa/evidencias`.
+
+## Links
+- Repositório: https://github.com/RangelTech/ai_aluno
+- Painel único: https://painel.rangeltech.net
+- Spec de organização geral: `new_ragente/specs/57_ORGANIZACAO_GERAL_PRODUTOS_E_PAINEL.md`
+
+## Notas técnicas (README anterior)
+
 # ai_aluno: área do aluno (user.rangeltech.net)
 
 Plataforma própria de Lucas Rangel (Rangel Tech): cursos em vídeo (HLS), downloads protegidos, mentorias ao vivo e gravações privadas.
